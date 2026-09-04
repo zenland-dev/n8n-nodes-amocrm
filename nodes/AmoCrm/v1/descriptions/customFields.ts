@@ -45,6 +45,8 @@ export function customFieldsDescription(
 						typeOptions: { loadOptionsMethod },
 						default: '',
 						required: true,
+						description:
+							'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>. The option value is composite — <code>fieldId::fieldType</code>, for example <code>123456::select</code> — because the type half decides which value input appears below. A bare numeric ID leaves that input hidden and the value is written as plain text, which is wrong for dates, selects and multiselects.',
 					},
 					{
 						// Carries the amoCRM field type across to the inputs below. It is

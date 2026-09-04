@@ -14,6 +14,7 @@ flag, a date picker for a date, your own list of options for a select.
 - [Installation](#installation)
 - [Credentials](#credentials)
 - [Nodes](#nodes)
+- [Using this node with an AI agent](#using-this-node-with-an-ai-agent)
 - [What makes this node different](#what-makes-this-node-different)
 - [amoCRM behaviour worth knowing](#amocrm-behaviour-worth-knowing)
 - [Compatibility](#compatibility)
@@ -120,6 +121,35 @@ amoCRM posts webhooks as `application/x-www-form-urlencoded` with PHP-style brac
 (`leads[status][0][id]=123`), not as JSON. The trigger decodes that into ordinary nested JSON, and
 by default emits one item per changed entity rather than one per HTTP request — which is what a
 workflow almost always wants to iterate over.
+
+## Using this node with an AI agent
+
+The node is exposed to n8n's AI Agent as a tool, and on n8n 2.x nothing has to be switched on
+for that. The tool name a model sees is the operation's action — *Create a lead in amoCRM*,
+*Get many tasks in amoCRM*, and so on. Four things decide whether it gets the call right.
+
+**Pin Resource and Operation yourself, and let the model fill only the data fields.** n8n will
+accept a `$fromAI()` placeholder on Resource and Operation, but the model then receives a
+free-form string with no list of the twenty-one resources or eighty-eight operations to choose
+from, and it will invent values like `catalog_element`. One node per operation you want to
+expose is the shape that works — and it is the same shape an MCP Server Trigger needs, one
+tool per node.
+
+**Turn Simplify on when a model reads the output.** amoCRM returns custom fields as
+`custom_fields_values: [{ field_id: 123456, values: [{ value: "…" }] }]`, which forces the model
+to decode the account's field ids to make sense of a record. Simplify adds a flat
+`custom_fields` object keyed by field name alongside the raw array. It is off by default
+because it changes the shape of the output.
+
+**Leave the entity pickers in their list mode** so a name resolves to an id on its own, and
+switch a picker to *By ID* only when the id genuinely comes from earlier data. Pipeline, stage,
+responsible user, tag and custom field ids differ from account to account — they are not
+guessable, and a model asked for one will guess.
+
+**Custom fields take a composite value.** The field picker's value is `fieldId::fieldType`, for
+example `123456::select`, and the type half is what makes the matching value input appear. A
+bare numeric id leaves that input hidden and the value is written as plain text — harmless for
+a text field, wrong for a date, a select or a multiselect.
 
 ## What makes this node different
 

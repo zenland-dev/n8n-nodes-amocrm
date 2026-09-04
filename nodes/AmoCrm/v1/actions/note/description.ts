@@ -131,10 +131,30 @@ export const description: INodeProperties[] = [
 		default: 'create',
 		displayOptions: { show: { resource: ['note'] } },
 		options: [
-			{ name: 'Create', value: 'create', action: 'Create a note' },
-			{ name: 'Get', value: 'get', action: 'Get a note' },
-			{ name: 'Get Many', value: 'getAll', action: 'Get many notes' },
-			{ name: 'Update', value: 'update', action: 'Update a note' },
+			{
+				name: 'Create',
+				value: 'create',
+				action: 'Create a note',
+				description: 'Write a note into the feed of a lead, contact, company or customer',
+			},
+			{
+				name: 'Get',
+				value: 'get',
+				action: 'Get a note',
+				description: 'Retrieve one note by ID',
+			},
+			{
+				name: 'Get Many',
+				value: 'getAll',
+				action: 'Get many notes',
+				description: 'List notes of one entity type, optionally narrowed to a single card',
+			},
+			{
+				name: 'Update',
+				value: 'update',
+				action: 'Update a note',
+				description: 'Change the text or parameters of an existing note',
+			},
 		],
 	},
 

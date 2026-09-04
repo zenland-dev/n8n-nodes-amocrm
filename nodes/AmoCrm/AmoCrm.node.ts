@@ -16,6 +16,20 @@ export class AmoCrm implements INodeType {
 		description: 'Work with leads, contacts, companies and the rest of an amoCRM or Kommo account',
 		defaults: { name: 'amoCRM' },
 		usableAsTool: true,
+		// Read by n8n's node catalog (@n8n/ai-utilities): searchHint is printed verbatim to a
+		// model choosing a node, and it is the only place to say things no single operation
+		// description can. Keep wire-format expressions out of it — the community-nodes
+		// linter rejects them here.
+		builderHint: {
+			searchHint:
+				'amoCRM and Kommo are one product behind one API, and this node serves both. A "lead" is a deal, not a person — people are contacts. Pipeline, stage, responsible user, tag and custom field IDs differ per account and cannot be guessed: leave the pickers on their list mode and let them resolve names, or read the IDs from the Account and Pipeline resources first. Turn Simplify on whenever the output is read by a model — it adds a flat, name-keyed custom_fields object next to the raw amoCRM array.',
+			relatedNodes: [
+				{
+					nodeType: '@zenland-dev/n8n-nodes-amocrm.amoCrmTrigger',
+					relationHint: 'Starts the workflow when amoCRM reports a change to a lead, contact, task, note or message',
+				},
+			],
+		},
 		inputs: [NodeConnectionTypes.Main],
 		outputs: [NodeConnectionTypes.Main],
 		credentials: [

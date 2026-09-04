@@ -106,11 +106,36 @@ export const description: INodeProperties[] = [
 		default: 'create',
 		displayOptions: { show: { resource: ['task'] } },
 		options: [
-			{ name: 'Complete', value: 'complete', action: 'Complete a task' },
-			{ name: 'Create', value: 'create', action: 'Create a task' },
-			{ name: 'Get', value: 'get', action: 'Get a task' },
-			{ name: 'Get Many', value: 'getAll', action: 'Get many tasks' },
-			{ name: 'Update', value: 'update', action: 'Update a task' },
+			{
+				name: 'Complete',
+				value: 'complete',
+				action: 'Complete a task',
+				description: 'Mark a task done, optionally recording a result text',
+			},
+			{
+				name: 'Create',
+				value: 'create',
+				action: 'Create a task',
+				description: 'Schedule a task with a deadline and a responsible user',
+			},
+			{
+				name: 'Get',
+				value: 'get',
+				action: 'Get a task',
+				description: 'Retrieve one task by ID',
+			},
+			{
+				name: 'Get Many',
+				value: 'getAll',
+				action: 'Get many tasks',
+				description: 'Search and list tasks',
+			},
+			{
+				name: 'Update',
+				value: 'update',
+				action: 'Update a task',
+				description: 'Change fields on an existing task',
+			},
 		],
 	},
 
