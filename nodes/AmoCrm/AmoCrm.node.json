@@ -1,0 +1,19 @@
+{
+	"node": "@zenland-dev/n8n-nodes-amocrm.amoCrm",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Sales", "Marketing & Content"],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://github.com/zenland-dev/n8n-nodes-amocrm?tab=readme-ov-file#credentials"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/zenland-dev/n8n-nodes-amocrm?tab=readme-ov-file"
+			}
+		]
+	},
+	"alias": ["amoCRM", "Kommo", "CRM", "Lead", "Deal", "Pipeline"]
+}
