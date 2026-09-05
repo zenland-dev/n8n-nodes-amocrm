@@ -60,6 +60,9 @@ on:
       # Matches 0.1.0, 1.2.3, 2.0.0-rc.1, etc.
       # See "TAG CONVENTION" above if you prefer tags with a "v" prefix.
       - '*.*.*'
+  # Lets the same job be run by hand to check the publishing setup without
+  # minting a tag. Publishing an already-published version fails harmlessly.
+  workflow_dispatch:
 
 jobs:
   publish:
@@ -83,6 +86,16 @@ jobs:
 
       - name: Install dependencies
         run: 'npm ci'
+
+      - name: Report what the publish will run with
+        # OIDC needs npm >= 11.5.1 and the id-token request variables the runner
+        # injects only when `id-token: write` is granted. Printing presence, never
+        # the value.
+        run: |
+          echo "node            : $(node -v)"
+          echo "npm             : $(npm -v)"
+          echo "id-token URL set: ${ACTIONS_ID_TOKEN_REQUEST_URL:+yes}"
+          echo "id-token tok set: ${ACTIONS_ID_TOKEN_REQUEST_TOKEN:+yes}"
 
       - name: Release
         # Publishes to npm with a provenance attestation (requires id-token: write above).
