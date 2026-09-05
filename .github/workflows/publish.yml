@@ -119,5 +119,3 @@ jobs:
           npm run release
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          # Temporary: shows whether npm attempts the OIDC exchange at all.
-          NPM_CONFIG_LOGLEVEL: verbose
