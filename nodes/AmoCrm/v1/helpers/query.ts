@@ -45,9 +45,13 @@ export function omitEmpty(input: IDataObject): IDataObject {
 }
 
 /**
- * Turns whatever the user pasted as an account address into a base URL.
- * Accepts `mycompany.amocrm.ru`, `https://mycompany.amocrm.ru/` and
- * `https://mycompany.kommo.com/leads/detail/123` alike.
+ * Turns a host that amoCRM itself handed us into a base URL — today only the
+ * file-storage shard from `/api/v4/account`, which arrives as a bare host or a
+ * full URL depending on the account.
+ *
+ * Deliberately permissive, and deliberately NOT used for the account address:
+ * that one is assembled from the credential's subdomain and its closed domain
+ * list by `accountBaseUrl`, so a credential cannot be aimed at another server.
  */
 export function toBaseUrl(accountDomain: unknown): string {
 	const host = String(accountDomain ?? '')

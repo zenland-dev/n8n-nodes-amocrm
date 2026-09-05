@@ -50,22 +50,30 @@ and nothing to break at three in the morning.
    **Files** as well if you plan to upload attachments.
 4. Open the integration card's **Keys and scopes** tab and generate a long-lived token.
 5. In n8n, create an **amoCRM Access Token API** credential:
-   - **Account Address** — what you see in your browser's address bar, e.g. `mycompany.amocrm.ru`.
-     A pasted `https://…/leads/detail/123` works too; only the host is kept.
+   - **Subdomain** — the part in front of the domain: `mycompany` for `mycompany.amocrm.ru`.
+   - **Domain** — pick `amocrm.ru`, `amocrm.com` or `kommo.com`.
    - **Access Token** — the token you just generated.
    - **Requests per Second** — leave at 7 unless your account has a paid limit add-on.
 
 The token has an expiry date you chose when generating it, up to five years. Anyone holding it has
 your whole account until then, so treat it like a password.
 
+> **The address is a subdomain plus a fixed domain on purpose.** A credential holds a secret that
+> n8n attaches to every request it makes with it, and whoever may edit that credential decides
+> where those requests go — without ever seeing the secret, which n8n masks on read and restores on
+> save. A free-form address would therefore be enough to walk the token out of the building. Here
+> the domain comes from a closed list, the subdomain is reduced to the characters a host may
+> contain, and the same rule is applied again in the node's own code. These credentials are also
+> pinned so they cannot be selected in an HTTP Request node.
+
 ### OAuth2 — for integrations serving several accounts
 
 1. Create the integration in amoCRM with **"Available for everyone"** ticked.
 2. Copy n8n's **OAuth Redirect URL** from the credential screen into the integration's Redirect URI.
-3. In n8n, create an **amoCRM OAuth2 API** credential, fill in **Account Address**, Client ID and
-   Client Secret, then click **Connect**.
+3. In n8n, create an **amoCRM OAuth2 API** credential, fill in **Subdomain**, **Domain**, Client ID
+   and Client Secret, then click **Connect**.
 
-Account Address must be filled in *before* connecting: amoCRM hosts its token endpoint on the
+The address must be filled in *before* connecting: amoCRM hosts its token endpoint on the
 account's own domain, so n8n cannot build the request without it.
 
 > amoCRM has no per-request scopes. What the integration may touch is chosen on the integration

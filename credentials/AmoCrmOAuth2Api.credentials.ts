@@ -1,14 +1,16 @@
 import type { Icon, ICredentialTestRequest, ICredentialType, INodeProperties } from 'n8n-workflow';
 
-/** Normalises whatever the user pasted into a bare host name. */
-const normalise = (ref: string) =>
-	`(${ref} || "").trim().replace("https://", "").replace("http://", "").split("/")[0]`;
+import {
+	accountAddressProperties,
+	accountHostExpression,
+	pinnedHttpRequestDomains,
+} from './accountAddress';
 
 /** Inside credential property defaults, sibling fields are read through `$self`. */
-const HOST = normalise('$self["accountDomain"]');
+const HOST = accountHostExpression('$self["subdomain"]', '$self["domain"]');
 
-/** Inside a credential test request, the same field is read through `$credentials`. */
-const TEST_HOST = normalise('$credentials.accountDomain');
+/** Inside a credential test request, the same fields come from `$credentials`. */
+const TEST_HOST = accountHostExpression('$credentials.subdomain', '$credentials.domain');
 
 export class AmoCrmOAuth2Api implements ICredentialType {
 	name = 'amoCrmOAuth2Api';
@@ -29,16 +31,7 @@ export class AmoCrmOAuth2Api implements ICredentialType {
 			type: 'notice',
 			default: '',
 		},
-		{
-			displayName: 'Account Address',
-			name: 'accountDomain',
-			type: 'string',
-			default: '',
-			required: true,
-			placeholder: 'mycompany.amocrm.ru',
-			description:
-				'Address of the amoCRM account this integration will be authorised against, exactly as it appears in the browser address bar. amoCRM hosts the token endpoint on the account\'s own domain, so this must be filled in before connecting.',
-		},
+		...accountAddressProperties,
 		{
 			displayName: 'Requests per Second',
 			name: 'requestsPerSecond',
@@ -58,7 +51,8 @@ export class AmoCrmOAuth2Api implements ICredentialType {
 			displayName: 'Authorization URL',
 			name: 'authUrl',
 			type: 'hidden',
-			default: `={{ ${HOST}.endsWith("kommo.com") ? "https://www.kommo.com/oauth" : "https://www.amocrm.ru/oauth" }}`,
+			default:
+				'={{ $self["domain"] === "kommo.com" ? "https://www.kommo.com/oauth" : "https://www.amocrm.ru/oauth" }}',
 		},
 		{
 			displayName: 'Access Token URL',
@@ -86,6 +80,7 @@ export class AmoCrmOAuth2Api implements ICredentialType {
 			type: 'hidden',
 			default: 'body',
 		},
+		pinnedHttpRequestDomains,
 	];
 
 	test: ICredentialTestRequest = {

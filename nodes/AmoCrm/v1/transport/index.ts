@@ -11,7 +11,8 @@ import type {
 import { NodeOperationError, randomInt, sleep } from 'n8n-workflow';
 
 import { extractRetryAfterMs, extractStatusCode, toAmoCrmApiError } from '../helpers/errors';
-import { flattenQuery, toBaseUrl } from '../helpers/query';
+import { accountBaseUrl } from '../../../../credentials/accountAddress';
+import { flattenQuery } from '../helpers/query';
 import { acquireSlot } from './rate-limiter';
 
 /** Every context this node makes API calls from. */
@@ -53,12 +54,15 @@ async function resolveAccount(this: AmoCrmContext): Promise<AccountConnection> {
 	const credentialType = authentication === 'oAuth2' ? 'amoCrmOAuth2Api' : 'amoCrmApi';
 
 	const credentials = await this.getCredentials(credentialType);
-	const baseUrl = toBaseUrl(credentials.accountDomain);
+	// Rebuilt from the two credential fields rather than taken as typed: the
+	// dropdown alone is only an editor hint, and stored values reach us through
+	// the expression engine. An address outside amoCRM yields '' and fails here.
+	const baseUrl = accountBaseUrl(credentials);
 
 	if (baseUrl === '') {
 		throw new NodeOperationError(
 			this.getNode(),
-			'The amoCRM credential has no account address',
+			'The amoCRM credential has no usable account address',
 			{
 				description:
 					'Open the credential and fill in the account address, for example mycompany.amocrm.ru.',

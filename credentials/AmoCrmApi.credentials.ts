@@ -6,13 +6,17 @@ import type {
 	INodeProperties,
 } from 'n8n-workflow';
 
-/**
- * The account address is what the user sees in the browser address bar, e.g.
- * `mycompany.amocrm.ru`. People paste it with a scheme and a trailing path more
- * often than not, so every use of it is normalised the same way.
- */
-export const ACCOUNT_BASE_URL =
-	"=https://{{ $credentials.accountDomain.trim().replace('https://', '').replace('http://', '').split('/')[0] }}";
+import {
+	accountAddressProperties,
+	accountHostExpression,
+	pinnedHttpRequestDomains,
+} from './accountAddress';
+
+/** The account host, assembled from the subdomain and the closed domain list. */
+export const ACCOUNT_BASE_URL = `=https://{{ ${accountHostExpression(
+	'$credentials.subdomain',
+	'$credentials.domain',
+)} }}`;
 
 export class AmoCrmApi implements ICredentialType {
 	name = 'amoCrmApi';
@@ -24,16 +28,7 @@ export class AmoCrmApi implements ICredentialType {
 	icon: Icon = 'file:amocrm.svg';
 
 	properties: INodeProperties[] = [
-		{
-			displayName: 'Account Address',
-			name: 'accountDomain',
-			type: 'string',
-			default: '',
-			required: true,
-			placeholder: 'mycompany.amocrm.ru',
-			description:
-				'Address of your amoCRM account, exactly as it appears in the browser address bar. Works for amocrm.ru, amocrm.com and kommo.com accounts.',
-		},
+		...accountAddressProperties,
 		{
 			displayName: 'Access Token',
 			name: 'accessToken',
@@ -53,6 +48,7 @@ export class AmoCrmApi implements ICredentialType {
 			description:
 				'How fast this account may be called. amoCRM allows seven requests per second per integration and bans repeat offenders, so raise this only if your account has a paid limit add-on.',
 		},
+		pinnedHttpRequestDomains,
 	];
 
 	authenticate: IAuthenticateGeneric = {
