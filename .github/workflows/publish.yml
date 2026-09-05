@@ -93,7 +93,16 @@ jobs:
         # Option B (token): set NPM_TOKEN in repo secrets — it is written to
         #   .npmrc here before publishing.
         run: |
-          [ -n "$NPM_TOKEN" ] && npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
+          # Spelled out rather than `[ -n "$NPM_TOKEN" ] && npm config set …`: under
+          # `set -e` a failing left-hand side of `&&` does not stop the step, so a
+          # missing or misnamed secret fell through to an unauthenticated publish and
+          # npm answered E404, which names the wrong cause entirely.
+          if [ -n "$NPM_TOKEN" ]; then
+            npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
+            echo "npm auth: NPM_TOKEN secret"
+          else
+            echo "npm auth: no NPM_TOKEN secret — relying on OIDC trusted publishing"
+          fi
           npm run release
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
