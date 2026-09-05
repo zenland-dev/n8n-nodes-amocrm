@@ -1,4 +1,4 @@
-import type { ICredentialTestRequest, ICredentialType, INodeProperties } from 'n8n-workflow';
+import type { Icon, ICredentialTestRequest, ICredentialType, INodeProperties } from 'n8n-workflow';
 
 /** Normalises whatever the user pasted into a bare host name. */
 const normalise = (ref: string) =>
@@ -19,7 +19,7 @@ export class AmoCrmOAuth2Api implements ICredentialType {
 
 	documentationUrl = 'https://www.amocrm.ru/developers/content/oauth/step-by-step';
 
-	icon = 'file:amocrm.svg' as const;
+	icon: Icon = 'file:amocrm.svg';
 
 	properties: INodeProperties[] = [
 		{

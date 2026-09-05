@@ -1,5 +1,6 @@
 import type {
 	IAuthenticateGeneric,
+	Icon,
 	ICredentialTestRequest,
 	ICredentialType,
 	INodeProperties,
@@ -20,7 +21,7 @@ export class AmoCrmApi implements ICredentialType {
 
 	documentationUrl = 'https://developers.kommo.com/docs/long-lived-token';
 
-	icon = 'file:amocrm.svg' as const;
+	icon: Icon = 'file:amocrm.svg';
 
 	properties: INodeProperties[] = [
 		{

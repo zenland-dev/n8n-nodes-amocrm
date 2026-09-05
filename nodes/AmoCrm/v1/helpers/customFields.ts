@@ -91,7 +91,14 @@ function valuesForEntry(
 
 	if (type === 'numeric') {
 		const raw = entry.numberValue;
-		return raw === undefined || raw === '' ? [] : [{ value: Number(raw) }];
+		if (raw === undefined || raw === '') return [];
+		const parsed = Number(raw);
+		// `Number('abc')` is NaN, and NaN serialises to `null` — amoCRM accepts that
+		// and stores an empty field, so a typo in an expression disappears without a
+		// word. The text goes through instead, the way dates do: amoCRM answers with
+		// a validation error naming the field, which the transport turns into a
+		// message the user can act on.
+		return [{ value: Number.isNaN(parsed) ? raw : parsed }];
 	}
 
 	if (DATE_TYPES.has(type)) {

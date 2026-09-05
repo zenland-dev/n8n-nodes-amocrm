@@ -109,15 +109,19 @@ export function entityLocator(
 				name: 'url',
 				type: 'string',
 				placeholder: `https://mycompany.amocrm.ru/${entity.path}/detail/12345`,
+				// The entity segment is what makes the URL identify a lead rather than a
+				// contact, so it is required. An earlier `|detail` alternative made
+				// every `/…/detail/<id>` link match, which quietly accepted a contact
+				// URL in a lead field and then operated on the contact's id.
 				extractValue: {
 					type: 'regex',
-					regex: `/(?:${entity.path}|detail)/(?:detail/)?([0-9]+)`,
+					regex: `/${entity.path}/(?:detail/)?([0-9]+)`,
 				},
 				validation: [
 					{
 						type: 'regex',
 						properties: {
-							regex: `.*/(?:${entity.path}|detail)/(?:detail/)?[0-9]+.*`,
+							regex: `.*/${entity.path}/(?:detail/)?[0-9]+.*`,
 							errorMessage: `Not an amoCRM ${entity.label.toLowerCase()} URL`,
 						},
 					},
