@@ -15,7 +15,7 @@ body:
     attributes:
       label: Versions
       description: The n8n version and the version of this package.
-      placeholder: "n8n 2.3.1, @zenland-dev/n8n-nodes-amocrm 0.2.1"
+      placeholder: "n8n 2.3.1, @zenland-dev/n8n-nodes-amocrm 0.3.0"
     validations:
       required: true
 

@@ -34,18 +34,13 @@ and the package follows [semantic versioning](https://semver.org/).
 
 ### Added
 
+- **A Feedback and bugs section in the README**, and issue templates for a bug report and a
+  feature request. The package always carried `bugs.url`, but only npm's own tooling reads
+  that — a reader who got to the end of the README was told where the licence is and nothing
+  about where to report what they had just run into.
 - **A note that the budget belongs to the n8n process.** A queue-mode instance with N workers
   holds N budgets, so **Requests per Second** on the credential should be divided by the
   number of workers.
-
-## 0.2.1 — 2026-09-06
-
-### Added
-
-- **A Feedback and bugs section in the README**, and issue templates for a bug report and a
-  feature request. The package always carried `bugs.url`, but that is only read by npm's own
-  tooling — a reader who reached the end of the README was told where the licence is and
-  nothing about where to report what they had just run into.
 
 ## 0.2.0 — 2026-09-05
 
