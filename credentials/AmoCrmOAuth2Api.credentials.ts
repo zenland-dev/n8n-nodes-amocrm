@@ -39,7 +39,7 @@ export class AmoCrmOAuth2Api implements ICredentialType {
 			typeOptions: { minValue: 1, maxValue: 50 },
 			default: 7,
 			description:
-				'How fast this account may be called. amoCRM allows seven requests per second per integration and bans repeat offenders, so raise this only if your account has a paid limit add-on.',
+				'How fast this integration may call the account. amoCRM budgets about seven requests per second per integration and shuts out repeat offenders, so raise this only if the account plan allows an integration more.',
 		},
 		{
 			displayName: 'Grant Type',

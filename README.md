@@ -9,13 +9,74 @@ flag, a date picker for a date, your own list of options for a select.
 
 [![npm](https://img.shields.io/npm/v/@zenland-dev/n8n-nodes-amocrm.svg)](https://www.npmjs.com/package/@zenland-dev/n8n-nodes-amocrm)
 
+## Why this node
+
+**Requests are counted, so the integration does not get shut out.** amoCRM allows an
+integration about seven requests per second, and answers sustained abuse with a 403 — not a
+slowdown, a refusal. Before each call this node reserves a slot in a one-second window, and
+that window is shared by every workflow in the n8n process, so ten parallel executions add up
+to one budget instead of ten. A 429 is retried with backoff and honours `Retry-After`; a 403
+is never retried, because retrying is exactly what turns a throttle into a ban. The rate is a
+credential setting, so an account whose plan allows more can be told about it.
+
+**Failures come back in words you can act on.** amoCRM says "Request validation failed" and
+leaves the rest to you. Here a 401 says which credential to renew, a 402 says the
+subscription lapsed rather than the token being wrong, a 403 spells out the three unrelated
+things it can mean, a 429 names the setting to lower, and a rejected field is reported by
+name together with the input item that carried it.
+
+**Dropdowns read your account.** Pipelines, stages scoped to the pipeline you picked, users,
+task types, loss reasons, tags, catalogs and their elements, event types, customer statuses
+and segments — all loaded from the account the credential points at. You pick "Won" from a
+list instead of remembering that it is status `142`. Those lookups are cached for a minute,
+per credential, so reopening a node or changing a dependent field costs nothing — and two
+dropdowns asking for the same list share one request rather than making two.
+
+**Custom fields get a real editor.** The field picker carries the field's type with it, so
+the value input below changes to match: a checkbox for a flag, a date picker for a date, your
+own options for a select or multi-select, a component-by-component form for an address.
+Structured types amoCRM defines but no form can draw — legal entities, invoice items, files —
+take JSON. There is also an explicit **Clear Field** switch, because "empty" and "erase" are
+different instructions in amoCRM and confusing them costs data.
+
+**Entities are searchable, not just numeric.** Where a lead, contact, company or customer is
+needed, the picker searches the account by name as you type — and the same field also accepts
+an ID, or a URL pasted straight out of the browser.
+
+**Bulk writes report item by item.** Raise **Batch Size** on a create or update and the node
+groups input items into single requests. Each element carries a `request_id`, so a rejection
+points at the input item that caused it instead of failing the whole batch anonymously.
+
+**The trigger speaks amoCRM's dialect.** Webhooks arrive as `application/x-www-form-urlencoded`
+with PHP-style bracket keys (`leads[status][0][id]=123`). The trigger decodes that into
+ordinary nested JSON and emits one item per changed entity rather than one per HTTP request,
+which is what a workflow actually wants to iterate over. Subscriptions are created when the
+workflow is activated and removed when it is deactivated.
+
+**The whole account is reachable.** Leads, contacts, companies, customers, tasks, notes,
+files, catalogs and catalog elements, custom fields and their groups, pipelines and stages,
+links, tags, events, unsorted, salesbots, calls, users and webhooks — and a **Custom Request**
+operation for anything not modelled yet, through the same authenticated and rate-limited
+transport. amoCRM and Kommo are one product behind one API, and both are served by this node.
+
+**Two ways in, and credentials that stay put.** Authenticate with a long-lived token from a
+private integration, or with OAuth2 when one integration serves several accounts. The account
+address is a subdomain plus a domain from a closed list, enforced again in the node's own
+code, and both credential types are pinned out of the HTTP Request node — so nobody who can
+edit a credential can point its token at an address of their own.
+
+**Usable as an AI agent tool.** Every operation carries the description a model reads when it
+picks a tool, and **Simplify** adds a flat `custom_fields` object keyed by field name next to
+amoCRM's raw `field_id` array, so a model does not have to decode your account's field IDs to
+read a record.
+
 ## Contents
 
+- [Why this node](#why-this-node)
 - [Installation](#installation)
 - [Credentials](#credentials)
 - [Nodes](#nodes)
 - [Using this node with an AI agent](#using-this-node-with-an-ai-agent)
-- [What makes this node different](#what-makes-this-node-different)
 - [amoCRM behaviour worth knowing](#amocrm-behaviour-worth-knowing)
 - [Compatibility](#compatibility)
 - [Development](#development)
@@ -54,7 +115,7 @@ and nothing to break at three in the morning.
    - **Subdomain** — the part in front of the domain: `mycompany` for `mycompany.amocrm.ru`.
    - **Domain** — pick `amocrm.ru`, `amocrm.com` or `kommo.com`.
    - **Access Token** — the token you just generated.
-   - **Requests per Second** — leave at 7 unless your account has a paid limit add-on.
+   - **Requests per Second** — leave at 7 unless the account plan allows an integration more.
 
 The token has an expiry date you chose when generating it, up to five years. Anyone holding it has
 your whole account until then, so treat it like a password.
@@ -160,33 +221,6 @@ example `123456::select`, and the type half is what makes the matching value inp
 bare numeric id leaves that input hidden and the value is written as plain text — harmless for
 a text field, wrong for a date, a select or a multiselect.
 
-## What makes this node different
-
-**Dropdowns read your account.** Pipelines, stages (scoped to the pipeline you picked), users,
-task types, loss reasons, tags, catalogs, catalog elements, event types, customer statuses and
-segments — all loaded from the live account, all cached briefly so that opening a node does not
-spend your API budget.
-
-**Custom fields get a real editor.** The field picker carries the field's type with it, so the
-value input below changes to match: a checkbox for a flag, a date picker for a date, a
-multi-select of your own options for a multi-select, a component-by-component form for an address.
-Structured types amoCRM defines but no form can draw — legal entities, invoice items, files — take
-JSON, and everything else is a proper input. There is also an explicit **Clear Field** switch,
-because "empty" and "erase" are different instructions in amoCRM and confusing them costs data.
-
-**Entities are searchable, not just numeric.** Where a lead, contact, company or customer is
-needed, the picker searches the account by name as you type, and also accepts an ID or a URL
-pasted straight out of the browser.
-
-**The rate limit is respected by design.** amoCRM allows about seven requests per second and
-answers sustained abuse with a 403 that applies to *every* integration on the account. This node
-throttles inside its transport, shared across all workflows in the n8n process, retries 429 with
-backoff, and never retries a 403 — because retrying is exactly what turns a throttle into a ban.
-
-**Bulk writes are optional and honest.** Raise **Batch Size** on a create or update and the node
-groups items into single requests, up to amoCRM's limit. Each element carries a `request_id`, so
-results and validation failures still map back to the right input item.
-
 ## amoCRM behaviour worth knowing
 
 - **An empty result is HTTP 204 with no body.** The node returns nothing rather than failing.
@@ -198,6 +232,10 @@ results and validation failures still map back to the right input item.
   reads keep working for thirty days.
 - **Tag lists replace, not append.** Sending tags on an update replaces the whole set.
 - **Multi-value custom fields replace too** — read, modify, write to add a second phone number.
+- **In queue mode the budget is per worker.** The request counter lives in the n8n process
+  that runs the execution, so a single-process instance stays inside one budget, while N
+  workers get N of them. Divide **Requests per Second** on the credential by the number of
+  workers — and leave room for whatever else calls the same account.
 
 ## Compatibility
 

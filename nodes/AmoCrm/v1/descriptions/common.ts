@@ -94,11 +94,16 @@ export function entityLocator(
 				displayName: 'By ID',
 				name: 'id',
 				type: 'string',
+				// The empty string has to pass: n8n runs a mode's validation on whatever the
+				// field holds, including nothing at all, and never consults `required` first.
+				// Without the `*` an optional picker switched to this mode reports "An amoCRM
+				// id is a number" before anything has been typed. A picker that really is
+				// required still fails n8n's own emptiness check, which is where that belongs.
 				validation: [
 					{
 						type: 'regex',
 						properties: {
-							regex: '^[0-9]+$',
+							regex: '^[0-9]*$',
 							errorMessage: 'An amoCRM id is a number',
 						},
 					},
@@ -120,8 +125,9 @@ export function entityLocator(
 				validation: [
 					{
 						type: 'regex',
+						// Empty passes here for the same reason as the id mode above.
 						properties: {
-							regex: `.*/${entity.path}/(?:detail/)?[0-9]+.*`,
+							regex: `(?:.*/${entity.path}/(?:detail/)?[0-9]+.*)?`,
 							errorMessage: `Not an amoCRM ${entity.label.toLowerCase()} URL`,
 						},
 					},

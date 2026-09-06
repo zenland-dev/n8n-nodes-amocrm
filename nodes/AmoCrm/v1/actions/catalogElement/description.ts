@@ -66,11 +66,14 @@ const elementLocator: INodeProperties = {
 			displayName: 'By ID',
 			name: 'id',
 			type: 'string',
+			// Empty has to pass: n8n validates a mode against whatever the field holds and
+			// does not look at `required` first, so an untouched optional picker would
+			// report an error before anything is typed. See descriptions/common.ts.
 			validation: [
 				{
 					type: 'regex',
 					properties: {
-						regex: '^[0-9]+$',
+						regex: '^[0-9]*$',
 						errorMessage: 'An amoCRM id is a number',
 					},
 				},

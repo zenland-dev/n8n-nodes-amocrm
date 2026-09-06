@@ -43,6 +43,7 @@ const MAX_PAGES = 1000;
 
 interface AccountConnection {
 	credentialType: 'amoCrmApi' | 'amoCrmOAuth2Api';
+	credentialId: string;
 	baseUrl: string;
 	requestsPerSecond: number;
 }
@@ -72,7 +73,14 @@ async function resolveAccount(this: AmoCrmContext): Promise<AccountConnection> {
 
 	const requestsPerSecond = Number(credentials.requestsPerSecond) || 7;
 
-	return { credentialType, baseUrl, requestsPerSecond };
+	// amoCRM budgets requests per integration, and a credential is what holds one, so
+	// the rate window is counted per credential rather than per account: two
+	// integrations calling the same account are entitled to a budget each. A
+	// credential that has not been saved yet has no id — those share one window,
+	// which errs on the safe side.
+	const credentialId = this.getNode().credentials?.[credentialType]?.id ?? 'unbound';
+
+	return { credentialType, credentialId, baseUrl, requestsPerSecond };
 }
 
 /** Waits 1s, 2s, 4s… with jitter, or honours `Retry-After` when the API sends one. */
@@ -107,6 +115,9 @@ export async function amoCrmApiRequest(
 ): Promise<any> {
 	const account = await resolveAccount.call(this);
 	const baseURL = options.baseUrl ?? account.baseUrl;
+	// The file drive is a separate host with a budget of its own, so it is part of
+	// the key rather than merged into the account's window.
+	const windowKey = `${account.credentialId}|${baseURL}`;
 
 	const requestOptions: IHttpRequestOptions = {
 		method,
@@ -126,7 +137,7 @@ export async function amoCrmApiRequest(
 	const maxAttempts = options.maxAttempts ?? 4;
 
 	for (let attempt = 1; ; attempt++) {
-		await acquireSlot(baseURL, account.requestsPerSecond);
+		await acquireSlot(windowKey, account.requestsPerSecond);
 
 		try {
 			const response = await this.helpers.httpRequestWithAuthentication.call(

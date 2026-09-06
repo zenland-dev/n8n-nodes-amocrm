@@ -1,16 +1,20 @@
 /**
- * amoCRM allows about seven requests per second and reacts to sustained abuse by
- * returning 403 for every subsequent call — for the whole account on amocrm.ru,
- * for the whole egress IP on Kommo. That makes throttling a correctness concern,
- * not an optimisation: one greedy workflow can lock every other integration out.
+ * amoCRM allows an integration about seven requests per second, and answers
+ * sustained abuse with a 403 that shuts that integration out — not a slowdown,
+ * a refusal. The account has a wider ceiling across every integration calling it,
+ * which no single integration can observe, so staying inside your own budget is
+ * the only part you control. That makes throttling a correctness concern rather
+ * than an optimisation: a greedy workflow does not run slower, it stops working.
  *
- * The window is shared per account host across the whole n8n process, so parallel
- * executions of different workflows still add up to a single budget.
+ * The window is keyed on the credential together with the host it calls, because
+ * the budget belongs to the integration a credential holds. It lives in the n8n
+ * process, so parallel executions of different workflows share one budget — and a
+ * queue-mode worker, being a process of its own, keeps a window of its own.
  */
 
 import { sleep } from 'n8n-workflow';
 
-/** Reserved moments, ascending, for each account host. */
+/** Reserved moments, ascending, for each credential and host. */
 const windows = new Map<string, number[]>();
 
 /**

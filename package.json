@@ -1,13 +1,14 @@
 {
 	"name": "@zenland-dev/n8n-nodes-amocrm",
-	"version": "0.2.1",
-	"description": "amoCRM (Kommo) nodes for n8n with account-aware dropdowns and a webhook trigger",
+	"version": "0.3.0",
+	"description": "amoCRM (Kommo) nodes for n8n with rate-limited requests, account-aware dropdowns and a webhook trigger",
 	"keywords": [
 		"n8n-community-node-package",
 		"n8n",
 		"amocrm",
 		"kommo",
-		"crm"
+		"crm",
+		"rate-limit"
 	],
 	"license": "MIT",
 	"homepage": "https://github.com/zenland-dev/n8n-nodes-amocrm",
