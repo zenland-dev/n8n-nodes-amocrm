@@ -3,6 +3,15 @@
 Notable changes to this package. The format follows [Keep a Changelog](https://keepachangelog.com/),
 and the package follows [semantic versioning](https://semver.org/).
 
+## 0.2.1 — 2026-09-06
+
+### Added
+
+- **A Feedback and bugs section in the README**, and issue templates for a bug report and a
+  feature request. The package always carried `bugs.url`, but that is only read by npm's own
+  tooling — a reader who reached the end of the README was told where the licence is and
+  nothing about where to report what they had just run into.
+
 ## 0.2.0 — 2026-09-05
 
 ### Changed

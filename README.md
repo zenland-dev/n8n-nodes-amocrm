@@ -19,6 +19,7 @@ flag, a date picker for a date, your own list of options for a select.
 - [amoCRM behaviour worth knowing](#amocrm-behaviour-worth-knowing)
 - [Compatibility](#compatibility)
 - [Development](#development)
+- [Feedback and bugs](#feedback-and-bugs)
 - [Licence](#licence)
 
 ## Installation
@@ -212,6 +213,21 @@ npm run dev        # runs a local n8n with this node loaded
 ```
 
 The package ships with no runtime dependencies, as n8n's community-node rules require.
+
+## Feedback and bugs
+
+Bug reports and ideas are welcome — open an issue:
+[github.com/zenland-dev/n8n-nodes-amocrm/issues](https://github.com/zenland-dev/n8n-nodes-amocrm/issues).
+
+What makes a report quick to act on:
+
+- your n8n version and the version of this package;
+- which node, resource and operation;
+- what amoCRM answered — the status code and the body of the error, with tokens removed;
+- for a trigger, whether the subscription is listed in **amoCRM → Settings → Integrations**.
+
+Missing an endpoint? The **Custom Request** operation reaches any part of the API in the
+meantime — say which one you need and it can be modelled properly, with dropdowns and all.
 
 ## Licence
 

@@ -1,6 +1,6 @@
 {
 	"name": "@zenland-dev/n8n-nodes-amocrm",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "amoCRM (Kommo) nodes for n8n with account-aware dropdowns and a webhook trigger",
 	"keywords": [
 		"n8n-community-node-package",

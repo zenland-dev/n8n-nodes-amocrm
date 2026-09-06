@@ -1,0 +1,25 @@
+name: Feature request
+description: A missing endpoint, field or convenience
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What you are trying to do
+      description: The workflow you are building, not only the API call you are missing.
+    validations:
+      required: true
+
+  - type: input
+    id: endpoint
+    attributes:
+      label: The amoCRM endpoint, if you know it
+      placeholder: "GET /api/v4/leads/{id}/links"
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: What you do today
+      description: >
+        The Custom Request operation reaches any endpoint the node does not model yet —
+        if you are using it, paste the call, it is the fastest way to specify this.
