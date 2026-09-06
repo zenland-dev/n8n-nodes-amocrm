@@ -10,3 +10,8 @@ dist/
 .vscode/
 Thumbs.db
 desktop.ini
+
+# Instructions for a coding agent editing this source. Kept on disk, not published:
+# they never shipped in the package either, which is dist-only.
+AGENTS.md
+CLAUDE.md
