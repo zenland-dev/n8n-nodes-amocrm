@@ -55,9 +55,15 @@ workflow is activated and removed when it is deactivated.
 
 **The whole account is reachable.** Leads, contacts, companies, customers, tasks, notes,
 files, catalogs and catalog elements, custom fields and their groups, pipelines and stages,
-links, tags, events, unsorted, salesbots, calls, users and webhooks — and a **Custom Request**
-operation for anything not modelled yet, through the same authenticated and rate-limited
-transport. amoCRM and Kommo are one product behind one API, and both are served by this node.
+links, tags, events, unsorted, salesbots, calls, conversations, users and webhooks — and a
+**Custom Request** operation for anything not modelled yet, through the same authenticated and
+rate-limited transport. amoCRM and Kommo are one product behind one API, and both are served by
+this node.
+
+**Conversations close the loop the trigger opens.** The trigger already reports an incoming
+message; the **Talk** resource is what answers it. List the conversations still in work, read a
+client's history, reply into the messenger they wrote from, and close the conversation or hand it
+to the NPS bot — which is what an AI agent in n8n needs before it can hold a conversation at all.
 
 **Two ways in, and credentials that stay put.** Authenticate with a long-lived token from a
 private integration, or with OAuth2 when one integration serves several accounts. The account
@@ -135,7 +141,7 @@ your whole account until then, so treat it like a password.
 3. In n8n, create an **amoCRM OAuth2 API** credential, fill in **Subdomain**, **Domain**, Client ID
    and Client Secret, then click **Connect**.
 
-The address must be filled in *before* connecting: amoCRM hosts its token endpoint on the
+The address must be filled in _before_ connecting: amoCRM hosts its token endpoint on the
 account's own domain, so n8n cannot build the request without it.
 
 > amoCRM has no per-request scopes. What the integration may touch is chosen on the integration
@@ -145,39 +151,58 @@ account's own domain, so n8n cannot build the request without it.
 
 ### amoCRM
 
-| Resource | Operations |
-| --- | --- |
-| Lead | Create · Get · Get Many · Update |
-| Contact | Create · Get · Get Many · Update |
-| Company | Create · Get · Get Many · Update |
-| Customer | Create · Get · Get Many · Update |
-| Task | Create · Complete · Get · Get Many · Update |
-| Note | Create · Get · Get Many · Update |
-| Tag | Create · Get Many |
-| Link | Link · Unlink · Get Many |
-| Call | Create |
-| Event | Get · Get Many |
-| Unsorted | Create · Get · Get Many · Accept · Decline · Link · Get Summary |
-| Catalog | Create · Get · Get Many · Update |
-| Catalog Element | Create · Get · Get Many · Update |
-| Pipeline | Create · Get · Get Many · Update · Delete — and the same five for stages |
-| Custom Field | Create · Get · Get Many · Update · Delete — and the same five for field groups |
-| User | Get · Get Many |
-| Account | Get |
-| Webhook | Subscribe · Unsubscribe · Get Many |
-| File | Upload · Attach to Entity · Add as Note · Download · Get · Get Many · Get Linked Entities · Detach From Entity · Delete |
-| Salesbot | Run · Stop · Get · Get Many |
-| Custom Request | Request |
+| Resource        | Operations                                                                                                              |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Lead            | Create · Create Complex · Get · Get Many · Update                                                                       |
+| Contact         | Create · Get · Get Many · Update                                                                                        |
+| Company         | Create · Get · Get Many · Update                                                                                        |
+| Customer        | Create · Get · Get Many · Update                                                                                        |
+| Task            | Create · Complete · Get · Get Many · Update                                                                             |
+| Note            | Create · Get · Get Many · Update                                                                                        |
+| Tag             | Create · Get Many                                                                                                       |
+| Link            | Link · Unlink · Get Many                                                                                                |
+| Call            | Create                                                                                                                  |
+| Talk            | Get · Get Many · Get Messages · Send Message · Close                                                                    |
+| Event           | Get · Get Many                                                                                                          |
+| Unsorted        | Create · Get · Get Many · Accept · Decline · Link · Get Summary                                                         |
+| Catalog         | Create · Get · Get Many · Update                                                                                        |
+| Catalog Element | Create · Get · Get Many · Update                                                                                        |
+| Pipeline        | Create · Get · Get Many · Update · Delete — and the same five for stages                                                |
+| Custom Field    | Create · Get · Get Many · Update · Delete — and the same five for field groups                                          |
+| User            | Get · Get Many                                                                                                          |
+| Account         | Get                                                                                                                     |
+| Webhook         | Subscribe · Unsubscribe · Get Many                                                                                      |
+| File            | Upload · Attach to Entity · Add as Note · Download · Get · Get Many · Get Linked Entities · Detach From Entity · Delete |
+| Salesbot        | Run · Stop · Get · Get Many                                                                                             |
+| Custom Request  | Request                                                                                                                 |
 
-Eighty-eight operations across twenty-one resources.
+Ninety-four operations across twenty-two resources.
 
 > **There is no Delete for leads, contacts or companies** — API v4 has no such route.
 > amoCRM's own interface deletes them through a session-authenticated endpoint no
 > integration can use. A node offering "Delete" here would have to do something else
 > and call it deletion, so this one does not offer it.
 
-Create and Update on leads, contacts, companies and customers, Create, Update and Complete on
-tasks, and Create on calls, accept a **Batch Size**: raise it and the node groups input items into single requests.
+**Create Complex** writes a lead together with its contact and company in one request, and it
+is the only way to reach amoCRM's duplicate control: a contact whose phone or e-mail is already
+in the account is merged into rather than created a second time, and the answer says which lead,
+contact and company the write resolved to. One condition — duplicate control has to be switched on
+for the integration in amoCRM; where it is not, the write still succeeds, unchecked.
+
+**Talk** is a conversation with a client in a messenger — WhatsApp, Telegram, whichever channel
+brought them in — including one opened by somebody else's integration. Listing, reading and
+closing work on both amoCRM and Kommo.
+
+**Get Messages** and **Send Message** are documented by Kommo only. The routes are present on
+amoCRM.ru as well, but answer **403** there: they are gated behind a chat permission that amoCRM
+does not offer integrations, so listing an account's conversations succeeds while reading one of
+them refuses. Checked against a live amoCRM.ru account on 8 September 2026 — `GET /api/v4/talks`
+returned its list, `GET /api/v4/talks/{id}/messages` returned 403. On Kommo, sending consumes the
+Chats API add-on quota (Trial 100 a month, Pro and Enterprise 500); reading the history does not.
+
+Create, Create Complex and Update on leads, Create and Update on contacts, companies and
+customers, Create, Update and Complete on tasks, and Create on calls, accept a **Batch Size**:
+raise it and the node groups input items into single requests.
 
 **Custom Request** is the release valve: any path, any method, through the same authenticated and
 rate-limited transport. Anything amoCRM adds tomorrow is reachable today.
@@ -195,12 +220,12 @@ workflow almost always wants to iterate over.
 ## Using this node with an AI agent
 
 The node is exposed to n8n's AI Agent as a tool, and on n8n 2.x nothing has to be switched on
-for that. The tool name a model sees is the operation's action — *Create a lead in amoCRM*,
-*Get many tasks in amoCRM*, and so on. Four things decide whether it gets the call right.
+for that. The tool name a model sees is the operation's action — _Create a lead in amoCRM_,
+_Get many tasks in amoCRM_, and so on. Four things decide whether it gets the call right.
 
 **Pin Resource and Operation yourself, and let the model fill only the data fields.** n8n will
 accept a `$fromAI()` placeholder on Resource and Operation, but the model then receives a
-free-form string with no list of the twenty-one resources or eighty-eight operations to choose
+free-form string with no list of the twenty-two resources or ninety-four operations to choose
 from, and it will invent values like `catalog_element`. One node per operation you want to
 expose is the shape that works — and it is the same shape an MCP Server Trigger needs, one
 tool per node.
@@ -212,7 +237,7 @@ to decode the account's field ids to make sense of a record. Simplify adds a fla
 because it changes the shape of the output.
 
 **Leave the entity pickers in their list mode** so a name resolves to an id on its own, and
-switch a picker to *By ID* only when the id genuinely comes from earlier data. Pipeline, stage,
+switch a picker to _By ID_ only when the id genuinely comes from earlier data. Pipeline, stage,
 responsible user, tag and custom field ids differ from account to account — they are not
 guessable, and a model asked for one will guess.
 
@@ -224,7 +249,7 @@ a text field, wrong for a date, a select or a multiselect.
 ## amoCRM behaviour worth knowing
 
 - **An empty result is HTTP 204 with no body.** The node returns nothing rather than failing.
-- **Stage IDs 142 and 143** mean won and lost in *every* pipeline, so a stage ID alone does not
+- **Stage IDs 142 and 143** mean won and lost in _every_ pipeline, so a stage ID alone does not
   identify a stage. That is why stage labels are prefixed with the pipeline name.
 - **`GET /users` and `/roles` are admin-only.** A 403 there usually means the authorising user is
   not an administrator, not that the token is wrong.

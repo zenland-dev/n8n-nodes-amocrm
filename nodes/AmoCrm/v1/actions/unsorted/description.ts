@@ -641,7 +641,7 @@ export const description: INodeProperties[] = [
 	leadFields,
 	contactFields,
 	companyNameProperty,
-	customFieldsDescription(showFor(['create']), 'getLeadCustomFields'),
+	customFieldsDescription(showFor(['create']), 'getLeadCustomFields', { fieldEntity: 'leads' }),
 	createAdditionalFields,
 	acceptOptions,
 	declineOptions,

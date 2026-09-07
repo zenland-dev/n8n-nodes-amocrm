@@ -1,7 +1,7 @@
 import type { IDataObject, IExecuteFunctions, INode } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 
-import { buildCustomFieldsValues } from '../../helpers/customFields';
+import { buildCustomFieldsValues, multitextValues } from '../../helpers/customFields';
 import { parseIdList, requireUnixSeconds, tagReferences } from './shared';
 
 /** Editor parameter → amoCRM field, for everything that is a plain scalar. */
@@ -26,11 +26,11 @@ const DATE_FIELDS: Array<[string, string, string]> = [
 /** Fields that describe links rather than lead data. */
 const LINK_FIELDS = ['contactIds', 'mainContactId', 'companyId'];
 
-type WriteMode = 'create' | 'update';
+type WriteMode = 'create' | 'update' | 'complex';
 
 /** Which collection holds the optional fields for this operation. */
 function fieldsParameter(mode: WriteMode): string {
-	return mode === 'create' ? 'additionalFields' : 'updateFields';
+	return mode === 'update' ? 'updateFields' : 'additionalFields';
 }
 
 /** An amoCRM id is always an integer; an expression may well produce it as a string. */
@@ -111,7 +111,7 @@ async function buildPayload(
 	const body: IDataObject = {};
 	const embedded: IDataObject = {};
 
-	if (mode === 'create') {
+	if (mode !== 'update') {
 		const name = String(this.getNodeParameter('name', itemIndex, '') ?? '').trim();
 		if (name !== '') body.name = name;
 	} else {
@@ -181,6 +181,126 @@ export async function buildUpdatePayload(
 	itemIndex: number,
 ): Promise<IDataObject> {
 	return await buildPayload.call(this, itemIndex, 'update');
+}
+
+/** Where one embedded entity's parameters live, and which amoCRM fields they fill. */
+interface EmbeddedSpec {
+	label: string;
+	noun: string;
+	fields: string;
+	phones: string;
+	emails: string;
+	customFields: string;
+	scalars: Array<[string, string]>;
+}
+
+const CONTACT_SPEC: EmbeddedSpec = {
+	label: 'Contact ID',
+	noun: 'contact',
+	fields: 'complexContactFields',
+	phones: 'contactPhonesUi',
+	emails: 'contactEmailsUi',
+	customFields: 'contactCustomFieldsUi',
+	scalars: [
+		['first_name', 'first_name'],
+		['last_name', 'last_name'],
+		['name', 'name'],
+		['responsible_user_id', 'responsible_user_id'],
+	],
+};
+
+const COMPANY_SPEC: EmbeddedSpec = {
+	label: 'Company ID',
+	noun: 'company',
+	fields: 'complexCompanyFields',
+	phones: 'companyPhonesUi',
+	emails: 'companyEmailsUi',
+	customFields: 'companyCustomFieldsUi',
+	scalars: [
+		['name', 'name'],
+		['responsible_user_id', 'responsible_user_id'],
+	],
+};
+
+/**
+ * The contact or company travelling inside a complex lead.
+ *
+ * amoCRM takes either a bare `{ id }` for one that already exists or a whole model to
+ * create — never a mixture, and it is the whole model that duplicate control inspects.
+ * So the two are refused together rather than one quietly winning: given both, this
+ * node would have to drop the typed name, phone and e-mail on the floor, and the
+ * phone is usually the very thing the caller expected to be matched on.
+ */
+async function buildEmbedded(
+	this: IExecuteFunctions,
+	itemIndex: number,
+	spec: EmbeddedSpec,
+): Promise<IDataObject | undefined> {
+	const node = this.getNode();
+	const fields = this.getNodeParameter(spec.fields, itemIndex, {}) as IDataObject;
+	const existingId = parseIdList(node, fields.id, spec.label)[0];
+
+	const entity: IDataObject = {};
+
+	for (const [parameter, field] of spec.scalars) {
+		const value = fields[parameter];
+		if (value === undefined || value === null || value === '') continue;
+
+		entity[field] = field === 'responsible_user_id' ? toId(value) : String(value);
+	}
+
+	const values = [
+		multitextValues('PHONE', this.getNodeParameter(spec.phones, itemIndex, {}) as IDataObject),
+		multitextValues('EMAIL', this.getNodeParameter(spec.emails, itemIndex, {}) as IDataObject),
+		...buildCustomFieldsValues(
+			this.getNodeParameter(spec.customFields, itemIndex, {}) as IDataObject,
+			node,
+		),
+	].filter((entry): entry is IDataObject => entry !== undefined);
+
+	if (values.length > 0) entity.custom_fields_values = values;
+
+	const described = Object.keys(entity).length > 0;
+
+	if (existingId !== undefined && described) {
+		throw new NodeOperationError(
+			node,
+			`${spec.label} cannot be combined with the other ${spec.noun} fields`,
+			{
+				description: `amoCRM attaches either an existing ${spec.noun} by ID or a new one described in full, and reads nothing else alongside the ID. Clear ${spec.label} to have the ${spec.noun} created and checked against the account's duplicates, or clear the ${spec.noun}'s fields, phones, e-mails and custom fields to attach the one that already exists.`,
+				itemIndex,
+			},
+		);
+	}
+
+	if (existingId !== undefined) return { id: existingId };
+
+	return described ? entity : undefined;
+}
+
+/**
+ * The body for one lead created together with its contact and company.
+ *
+ * The link fields the ordinary create offers are absent here by design: this endpoint
+ * carries the contact and the company itself, and passing both would leave amoCRM to
+ * decide which attachment wins.
+ */
+export async function buildComplexPayload(
+	this: IExecuteFunctions,
+	itemIndex: number,
+): Promise<IDataObject> {
+	const body = await buildPayload.call(this, itemIndex, 'complex');
+	const embedded = (body._embedded ?? {}) as IDataObject;
+
+	const contact = await buildEmbedded.call(this, itemIndex, CONTACT_SPEC);
+	if (contact !== undefined) embedded.contacts = [contact];
+
+	const company = await buildEmbedded.call(this, itemIndex, COMPANY_SPEC);
+	if (company !== undefined) embedded.companies = [company];
+
+	if (Object.keys(embedded).length > 0) body._embedded = embedded;
+
+	return body;
 }
 
 /**

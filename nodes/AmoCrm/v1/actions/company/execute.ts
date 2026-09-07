@@ -37,7 +37,6 @@ function assignId(target: IDataObject, key: string, value: unknown): void {
 	target[key] = Number.isFinite(numeric) ? numeric : raw;
 }
 
-
 /** Tag dropdowns hand back names; an expression may well hand back an id. */
 function tagReferences(values: unknown[]): IDataObject[] {
 	return values

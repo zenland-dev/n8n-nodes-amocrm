@@ -17,15 +17,38 @@ interface AmoCrmErrorBody {
 	}>;
 }
 
-/** Pulls the HTTP status out of whatever shape the failure arrived in. */
+/**
+ * Pulls the HTTP status out of whatever shape the failure arrived in.
+ *
+ * The list is long because the status is the one thing that decides everything
+ * downstream — whether the request is retried, and whether the user is told to renew
+ * a token or to slow down. Miss it and an already-wrapped `NodeApiError` is passed
+ * straight through, so the reader gets n8n's generic "Forbidden — perhaps check your
+ * credentials?" instead of the sentence this node exists to give them. Every shape
+ * below has been seen in the wild from one layer or another: axios, n8n's request
+ * helper, and n8n's own error wrapper, each nesting the previous one.
+ */
 export function extractStatusCode(error: unknown): number | undefined {
+	const self = error as IDataObject;
+	const response = self?.response as IDataObject;
+	const cause = self?.cause as IDataObject;
+	const causeResponse = cause?.response as IDataObject;
+
 	const candidates = [
-		(error as IDataObject)?.httpCode,
-		((error as IDataObject)?.response as IDataObject)?.status,
-		(error as IDataObject)?.statusCode,
-		(((error as IDataObject)?.cause as IDataObject)?.response as IDataObject)?.status,
-		((error as IDataObject)?.cause as IDataObject)?.statusCode,
-		((error as IDataObject)?.context as IDataObject)?.statusCode,
+		self?.httpCode,
+		response?.status,
+		response?.statusCode,
+		self?.statusCode,
+		self?.status,
+		causeResponse?.status,
+		causeResponse?.statusCode,
+		cause?.httpCode,
+		cause?.statusCode,
+		cause?.status,
+		(self?.context as IDataObject)?.statusCode,
+		(self?.context as IDataObject)?.httpCode,
+		(cause?.context as IDataObject)?.statusCode,
+		((cause?.cause as IDataObject)?.response as IDataObject)?.status,
 	];
 
 	for (const candidate of candidates) {
@@ -83,6 +106,22 @@ function describeValidationErrors(body: AmoCrmErrorBody): string {
 }
 
 /**
+ * What to hand `NodeApiError` as the failure it is wrapping.
+ *
+ * Handed another `NodeApiError`, n8n's constructor keeps that error's own message and
+ * silently discards the `message` option — so a 403 that n8n had already wrapped came
+ * out as "Forbidden - perhaps check your credentials?", which is wrong here twice
+ * over: the credentials are fine, and it hides which of amoCRM's three causes it was.
+ * Passing a plain object instead is what lets the sentence below survive. amoCRM's own
+ * response body travels with it, so nothing a reader could use is lost.
+ */
+function sourceFor(error: unknown, body: AmoCrmErrorBody): JsonObject {
+	if (!(error instanceof NodeApiError)) return error as JsonObject;
+
+	return { message: error.message, ...(body as JsonObject) };
+}
+
+/**
  * Turns an amoCRM failure into a NodeApiError a user can act on.
  *
  * The API's own messages are terse ("Request validation failed") and its 403 means
@@ -118,11 +157,16 @@ export function toAmoCrmApiError(node: INode, error: unknown, status?: number): 
 			description =
 				'amoCRM blocks writes as soon as a subscription lapses, and reads 30 days later. This is a billing state, not a credentials problem.';
 			break;
-		case 403:
+		case 403: {
 			message = 'amoCRM refused the request';
-			description =
+			// Whatever amoCRM said comes first and is never dropped: on a scope-gated
+			// endpoint it names the permission that is missing, which none of the three
+			// generic causes below would ever tell the reader.
+			const causes =
 				'403 covers three unrelated causes: the authorising user lacks rights for this entity, the account restricts API access by IP, or the account or IP is blocked for exceeding the rate limit. Retrying makes a rate-limit block worse, so this request was not retried.';
+			description = description === '' ? causes : `${description}\n\n${causes}`;
 			break;
+		}
 		case 404:
 			message = 'amoCRM found nothing at that address';
 			description =
@@ -145,7 +189,7 @@ export function toAmoCrmApiError(node: INode, error: unknown, status?: number): 
 			}
 	}
 
-	return new NodeApiError(node, error as JsonObject, {
+	return new NodeApiError(node, sourceFor(error, body), {
 		message,
 		description: description === '' ? undefined : description,
 		httpCode: httpCode === undefined ? undefined : String(httpCode),

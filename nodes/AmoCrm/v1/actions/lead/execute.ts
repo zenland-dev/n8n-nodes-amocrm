@@ -7,6 +7,7 @@ import type { BatchConfig } from '../types';
 import { buildLeadListQuery } from './listQuery';
 import {
 	buildBatchUpdatePayload,
+	buildComplexPayload,
 	buildCreatePayload,
 	buildLinkObjects,
 	buildUpdatePayload,
@@ -14,11 +15,31 @@ import {
 import { firstEmbedded } from './shared';
 
 const LEADS = '/api/v4/leads';
+const LEADS_COMPLEX = `${LEADS}/complex`;
+
+/** The complex endpoint answers with a bare array rather than the usual HAL envelope. */
+function complexRows(response: unknown): IDataObject[] {
+	return Array.isArray(response) ? (response as IDataObject[]) : [];
+}
 
 /**
- * The two writes the router may group.
+ * The input items one complex result accounts for.
  *
- * Both paths build their body with the same functions, so a field added to the editor
+ * Duplicate control can answer several submitted leads with a single row — that is
+ * what it is for — and amoCRM then returns `request_id` as an array holding every
+ * index that was merged into it. Sending each of those items the same row is what
+ * keeps `pairedItem` honest about which input ended up where.
+ */
+function complexItems(row: IDataObject): number[] {
+	const echoed = Array.isArray(row.request_id) ? (row.request_id as unknown[]) : [row.request_id];
+
+	return echoed.map(Number).filter((index) => Number.isFinite(index));
+}
+
+/**
+ * The three writes the router may group.
+ *
+ * Every path builds its body with the same functions, so a field added to the editor
  * cannot end up honoured one request at a time and dropped fifty at a time.
  */
 export const batch: Record<string, BatchConfig> = {
@@ -27,6 +48,15 @@ export const batch: Record<string, BatchConfig> = {
 		method: 'POST',
 		collection: 'leads',
 		payload: buildCreatePayload,
+	},
+	createComplex: {
+		endpoint: LEADS_COMPLEX,
+		method: 'POST',
+		rows: complexRows,
+		echoedItems: complexItems,
+		// amoCRM refuses more than 50 leads here, rather than merely advising against it.
+		maxBatchSize: 50,
+		payload: buildComplexPayload,
 	},
 	update: {
 		endpoint: LEADS,
@@ -51,6 +81,31 @@ async function create(this: IExecuteFunctions, itemIndex: number): Promise<INode
 	const response = await amoCrmApiRequest.call(this, 'POST', LEADS, [body]);
 
 	return [{ json: firstEmbedded(response, 'leads') }];
+}
+
+/**
+ * One lead created together with its contact and company, through duplicate control.
+ *
+ * The answer is not a lead but a report on what the write resolved to — the lead's ID,
+ * the contact's, the company's, and `merged`, which says whether an existing contact
+ * absorbed the submitted one. It is passed on as it arrives: turning it into a lead
+ * object would drop exactly the fact the caller asked this endpoint for.
+ */
+async function createComplex(
+	this: IExecuteFunctions,
+	itemIndex: number,
+): Promise<INodeExecutionData[]> {
+	const body = await buildComplexPayload.call(this, itemIndex);
+
+	// The complex endpoint has no object form either: one lead still travels in an array.
+	const response = await amoCrmApiRequest.call(this, 'POST', LEADS_COMPLEX, [body]);
+	const rows = complexRows(response);
+
+	// Anything that is not the documented array is handed on rather than swallowed,
+	// the same way a plain create passes on whatever amoCRM chose to answer with.
+	return rows.length > 0
+		? rows.map((row) => ({ json: row }))
+		: [{ json: (response ?? {}) as IDataObject }];
 }
 
 async function update(this: IExecuteFunctions, itemIndex: number): Promise<INodeExecutionData[]> {
@@ -124,7 +179,7 @@ type Handler = (this: IExecuteFunctions, itemIndex: number) => Promise<INodeExec
  * operation list stops here rather than offering a delete that quietly moves a lead
  * to a "lost" stage instead.
  */
-const OPERATIONS: Record<string, Handler> = { create, get, getAll, update };
+const OPERATIONS: Record<string, Handler> = { create, createComplex, get, getAll, update };
 
 export async function execute(
 	this: IExecuteFunctions,

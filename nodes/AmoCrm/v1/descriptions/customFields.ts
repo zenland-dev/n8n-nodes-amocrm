@@ -19,13 +19,18 @@ export const DYNAMIC_OPTIONS_DESCRIPTION =
 export function customFieldsDescription(
 	displayOptions: INodeProperties['displayOptions'],
 	loadOptionsMethod = 'getCustomFields',
+	// One operation may write more than one entity — a lead together with its contact
+	// and company — and each of them has its own fields, so both the parameter name
+	// and the label have to be sayable. `customFieldsUi` stays the default: it is the
+	// name already stored in people's workflows.
+	options: { name?: string; displayName?: string; placeholder?: string; fieldEntity?: string } = {},
 ): INodeProperties {
 	return {
-		displayName: 'Custom Fields',
-		name: 'customFieldsUi',
+		displayName: options.displayName ?? 'Custom Fields',
+		name: options.name ?? 'customFieldsUi',
 		type: 'fixedCollection',
 		typeOptions: { multipleValues: true },
-		placeholder: 'Add Custom Field',
+		placeholder: options.placeholder ?? 'Add Custom Field',
 		default: {},
 		displayOptions,
 		description: 'Values for the custom fields configured in your amoCRM account',
@@ -56,6 +61,26 @@ export function customFieldsDescription(
 						name: 'fieldType',
 						type: 'hidden',
 						default: '={{ $parameter["&fieldId"].split("::")[1] }}',
+					},
+					// Which dictionary the picked field came from. Without it the option
+					// list beside the picker is looked up by the node's *resource*, which
+					// is right only when the entity being written is the resource itself —
+					// a lead's own fields under Lead. It is wrong for the contact and the
+					// company written inside a complex lead, and for unsorted, whose
+					// resource name maps to no dictionary at all: the field would be
+					// searched for in the wrong list, found nowhere, and its options would
+					// come back empty with no error to say why.
+					// Always present, and empty where the caller says nothing: an empty value
+					// reads as "not stated" and the lookup falls back to the resource, which
+					// is what every editor written before this did.
+					/* eslint-disable-next-line n8n-nodes-base/node-param-default-missing --
+					   The default is here, but it is the argument this factory was called
+					   with rather than a literal, and the rule only recognises literals. */
+					{
+						displayName: 'Field Entity',
+						name: 'fieldEntity',
+						type: 'hidden',
+						default: options.fieldEntity ?? '',
 					},
 					{
 						displayName: 'Value',
@@ -103,7 +128,8 @@ export function customFieldsDescription(
 						displayName: 'Option Name or ID',
 						name: 'enumValue',
 						type: 'options',
-						description: 'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
+						description:
+							'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
 						typeOptions: {
 							loadOptionsMethod: 'getCustomFieldEnums',
 							loadOptionsDependsOn: ['&fieldId'],
@@ -115,7 +141,8 @@ export function customFieldsDescription(
 						displayName: 'Option Names or IDs',
 						name: 'enumValues',
 						type: 'multiOptions',
-						description: 'Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
+						description:
+							'Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
 						typeOptions: {
 							loadOptionsMethod: 'getCustomFieldEnums',
 							loadOptionsDependsOn: ['&fieldId'],
@@ -198,7 +225,8 @@ export function customFieldsDescription(
 										displayName: 'List Name or ID',
 										name: 'catalogId',
 										type: 'options',
-										description: 'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
+										description:
+											'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
 										typeOptions: { loadOptionsMethod: 'getCatalogs' },
 										default: '',
 									},
@@ -206,7 +234,8 @@ export function customFieldsDescription(
 										displayName: 'Element Name or ID',
 										name: 'catalogElementId',
 										type: 'options',
-										description: 'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
+										description:
+											'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
 										typeOptions: {
 											loadOptionsMethod: 'getCatalogElements',
 											loadOptionsDependsOn: ['&catalogId'],

@@ -17,6 +17,7 @@ import * as note from './note';
 import * as pipeline from './pipeline';
 import * as salesbot from './salesbot';
 import * as tag from './tag';
+import * as talk from './talk';
 import * as task from './task';
 import * as unsorted from './unsorted';
 import * as user from './user';
@@ -41,6 +42,7 @@ export const resources: Record<string, ResourceModule> = {
 	pipeline,
 	salesbot,
 	tag,
+	talk,
 	task,
 	unsorted,
 	user,
@@ -69,7 +71,8 @@ export const resourceProperty: INodeProperties = {
 		{
 			name: 'Custom Request',
 			value: 'customRequest',
-			description: 'Any amoCRM endpoint this node does not model, sent through the same authenticated and rate-limited transport',
+			description:
+				'Any amoCRM endpoint this node does not model, sent through the same authenticated and rate-limited transport',
 		},
 		{ name: 'Customer', value: 'customer' },
 		{
@@ -82,7 +85,8 @@ export const resourceProperty: INodeProperties = {
 		{
 			name: 'Link',
 			value: 'link',
-			description: 'Connections between entities: attach a contact to a lead, a lead to a customer, a catalog element to either',
+			description:
+				'Connections between entities: attach a contact to a lead, a lead to a customer, a catalog element to either',
 		},
 		{ name: 'Note', value: 'note' },
 		{ name: 'Pipeline', value: 'pipeline' },
@@ -92,11 +96,18 @@ export const resourceProperty: INodeProperties = {
 			description: 'Chat automation configured in the account: start or stop a bot on one entity',
 		},
 		{ name: 'Tag', value: 'tag' },
+		{
+			name: 'Talk',
+			value: 'talk',
+			description:
+				'A messenger conversation with a client: list the open ones, read the history, reply, or close it',
+		},
 		{ name: 'Task', value: 'task' },
 		{
 			name: 'Unsorted',
 			value: 'unsorted',
-			description: 'Incoming requests from forms, chats and calls that nobody has accepted into a pipeline yet',
+			description:
+				'Incoming requests from forms, chats and calls that nobody has accepted into a pipeline yet',
 		},
 		{ name: 'User', value: 'user' },
 		{ name: 'Webhook', value: 'webhook' },

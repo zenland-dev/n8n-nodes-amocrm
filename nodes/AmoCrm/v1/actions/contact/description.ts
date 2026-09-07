@@ -3,6 +3,7 @@ import type { INodeProperties, INodePropertyOptions } from 'n8n-workflow';
 import {
 	batchSizeProperty,
 	entityLocator,
+	multitextProperty,
 	responsibleUserProperty,
 	returnAllProperties,
 	simplifyProperty,
@@ -81,95 +82,15 @@ const nameProperty: INodeProperties = {
 		'Display name of the contact. Leave it empty and fill First Name and Last Name instead — amoCRM builds the display name out of those two.',
 };
 
-/**
- * Phone numbers and e-mail addresses live in the predefined `PHONE` and `EMAIL`
- * multitext fields, every value tagged with a "kind" enum. The custom-field editor
- * below can reach them, but that turns the two fields every CRM user needs into the
- * most awkward ones in the node, so they get inputs of their own.
- *
- * The write is addressed by `field_code`: those codes are the same in every account,
- * so nothing has to be looked up before the request.
- */
-const phonesProperty: INodeProperties = {
-	displayName: 'Phones',
-	name: 'phonesUi',
-	type: 'fixedCollection',
-	typeOptions: { multipleValues: true },
-	placeholder: 'Add Phone',
-	default: {},
-	displayOptions: showFor(['create', 'update']),
+const phonesProperty = multitextProperty('phone', 'phonesUi', showFor(['create', 'update']), {
 	description:
 		'Phone numbers of the contact. amoCRM replaces the whole field, so an update has to repeat the numbers you want to keep.',
-	options: [
-		{
-			name: 'entry',
-			displayName: 'Phone',
-			values: [
-				{
-					displayName: 'Number',
-					name: 'value',
-					type: 'string',
-					default: '',
-					placeholder: '+79161234567',
-				},
-				{
-					displayName: 'Kind',
-					name: 'enumCode',
-					type: 'options',
-					default: 'WORK',
-					description: 'How amoCRM labels this number',
-					options: [
-						{ name: 'Fax', value: 'FAX' },
-						{ name: 'Home', value: 'HOME' },
-						{ name: 'Mobile', value: 'MOB' },
-						{ name: 'Other', value: 'OTHER' },
-						{ name: 'Work', value: 'WORK' },
-						{ name: 'Work Direct Dial', value: 'WORKDD' },
-					],
-				},
-			],
-		},
-	],
-};
+});
 
-const emailsProperty: INodeProperties = {
-	displayName: 'Emails',
-	name: 'emailsUi',
-	type: 'fixedCollection',
-	typeOptions: { multipleValues: true },
-	placeholder: 'Add Email',
-	default: {},
-	displayOptions: showFor(['create', 'update']),
+const emailsProperty = multitextProperty('email', 'emailsUi', showFor(['create', 'update']), {
 	description:
 		'E-mail addresses of the contact. amoCRM replaces the whole field, so an update has to repeat the addresses you want to keep.',
-	options: [
-		{
-			name: 'entry',
-			displayName: 'Email',
-			values: [
-				{
-					displayName: 'Address',
-					name: 'value',
-					type: 'string',
-					default: '',
-					placeholder: 'name@example.com',
-				},
-				{
-					displayName: 'Kind',
-					name: 'enumCode',
-					type: 'options',
-					default: 'WORK',
-					description: 'How amoCRM labels this address',
-					options: [
-						{ name: 'Other', value: 'OTHER' },
-						{ name: 'Personal', value: 'PRIV' },
-						{ name: 'Work', value: 'WORK' },
-					],
-				},
-			],
-		},
-	],
-};
+});
 
 const additionalFields: INodeProperties = {
 	displayName: 'Additional Fields',
@@ -513,7 +434,9 @@ export const description: INodeProperties[] = [
 	}),
 	additionalFields,
 	updateFields,
-	customFieldsDescription(showFor(['create', 'update']), 'getContactCustomFields'),
+	customFieldsDescription(showFor(['create', 'update']), 'getContactCustomFields', {
+		fieldEntity: 'contacts',
+	}),
 	batchSizeProperty(showFor(['create', 'update'])),
 	...returnAllProperties(showFor(['getAll'])),
 	filters,

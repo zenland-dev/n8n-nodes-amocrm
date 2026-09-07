@@ -3,8 +3,19 @@ import type { IDataObject, ILoadOptionsFunctions, INodePropertyOptions } from 'n
 import { amoCrmCachedRequest } from '../transport/cache';
 import { CUSTOM_FIELD_ENTITIES, cachedList, currentParam, toOptions } from './shared';
 
-/** Which custom-field dictionary the node is currently editing. */
+/**
+ * Which custom-field dictionary the node is currently editing.
+ *
+ * The editor may state it outright, as a hidden `fieldEntity` beside the field
+ * picker, and that wins: an operation can write an entity that is not the resource
+ * it hangs off — the contact and the company inside a complex lead, the lead inside
+ * an unsorted request — and only the editor knows which. Falling back to the
+ * resource keeps every editor written before this existed working unchanged.
+ */
 function customFieldsEndpoint(context: ILoadOptionsFunctions): string {
+	const declared = currentParam(context, 'fieldEntity');
+	if (declared !== undefined) return `/api/v4/${declared}/custom_fields`;
+
 	const resource = String(context.getNodeParameter('resource', '') ?? '');
 
 	if (resource === 'catalogElement') {
@@ -58,9 +69,7 @@ export async function getPipelines(this: ILoadOptionsFunctions): Promise<INodePr
 	// says which is which; the row itself is shared and cached, so it is left alone.
 	return toOptions(pipelines, {
 		label: (pipeline) =>
-			pipeline.is_archive === true
-				? `${String(pipeline.name)} (archived)`
-				: String(pipeline.name),
+			pipeline.is_archive === true ? `${String(pipeline.name)} (archived)` : String(pipeline.name),
 		describe: (pipeline) => (pipeline.is_main === true ? 'Main pipeline' : undefined),
 	});
 }
@@ -161,7 +170,9 @@ export async function getTaskTypes(this: ILoadOptionsFunctions): Promise<INodePr
 }
 
 /** Custom fields of the entity the node is currently working with. */
-export async function getCustomFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+export async function getCustomFields(
+	this: ILoadOptionsFunctions,
+): Promise<INodePropertyOptions[]> {
 	return toCustomFieldOptions(await loadCustomFields.call(this, customFieldsEndpoint(this)));
 }
 

@@ -1,4 +1,9 @@
-import type { IExecuteFunctions, INodeExecutionData, INodeType, INodeTypeDescription } from 'n8n-workflow';
+import type {
+	IExecuteFunctions,
+	INodeExecutionData,
+	INodeType,
+	INodeTypeDescription,
+} from 'n8n-workflow';
 import { NodeConnectionTypes } from 'n8n-workflow';
 
 import { resourceProperties, resourceProperty } from './v1/actions';
@@ -22,11 +27,12 @@ export class AmoCrm implements INodeType {
 		// linter rejects them here.
 		builderHint: {
 			searchHint:
-				'amoCRM and Kommo are one product behind one API, and this node serves both. A "lead" is a deal, not a person — people are contacts. Pipeline, stage, responsible user, tag and custom field IDs differ per account and cannot be guessed: leave the pickers on their list mode and let them resolve names, or read the IDs from the Account and Pipeline resources first. Turn Simplify on whenever the output is read by a model — it adds a flat, name-keyed custom_fields object next to the raw amoCRM array.',
+				'amoCRM and Kommo are one product behind one API, and this node serves both. A "lead" is a deal, not a person — people are contacts. Pipeline, stage, responsible user, tag and custom field IDs differ per account and cannot be guessed: leave the pickers on their list mode and let them resolve names, or read the IDs from the Account and Pipeline resources first. Turn Simplify on whenever the output is read by a model — it adds a flat, name-keyed custom_fields object next to the raw amoCRM array. To take in an enquiry, prefer the lead operation Create Complex over creating a contact and a lead separately: it writes both in one request and merges a contact the account already knows instead of duplicating them, provided duplicate control is switched on for the integration in amoCRM. To answer a client in a messenger, use the Talk resource — Get Many with Only In Work lists the open conversations, Get Messages reads one, Send Message replies into it — those last two work on Kommo accounts only.',
 			relatedNodes: [
 				{
 					nodeType: '@zenland-dev/n8n-nodes-amocrm.amoCrmTrigger',
-					relationHint: 'Starts the workflow when amoCRM reports a change to a lead, contact, task, note or message',
+					relationHint:
+						'Starts the workflow when amoCRM reports a change to a lead, contact, task, note or message',
 				},
 			],
 		},
@@ -55,7 +61,8 @@ export class AmoCrm implements INodeType {
 					{
 						name: 'Access Token',
 						value: 'accessToken',
-						description: 'Long-lived token from a private integration. Simplest, and does not expire on its own.',
+						description:
+							'Long-lived token from a private integration. Simplest, and does not expire on its own.',
 					},
 					{
 						name: 'OAuth2',

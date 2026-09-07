@@ -17,6 +17,20 @@ function errorItem(error: unknown, itemIndex: number): INodeExecutionData {
 	};
 }
 
+/** The written entities, from the HAL envelope or from the config's own reader. */
+function readRows(config: BatchConfig, response: unknown): IDataObject[] {
+	if (config.rows !== undefined) return config.rows(response);
+
+	const embedded = ((response as IDataObject | undefined)?._embedded ?? {}) as IDataObject;
+	return (embedded[config.collection] ?? []) as IDataObject[];
+}
+
+/** The input item a row echoes back, as the index the batch wrote into `request_id`. */
+function echoedItem(row: IDataObject): number[] {
+	const echoed = Number(row.request_id);
+	return Number.isFinite(echoed) ? [echoed] : [];
+}
+
 /**
  * Sends several input items in one amoCRM write.
  *
@@ -47,17 +61,18 @@ async function executeBatched(
 		const body = group.map(({ index, body: entity }) => ({ ...entity, request_id: String(index) }));
 
 		try {
-			const response = (await amoCrmApiRequest.call(this, config.method, config.endpoint, body)) as
-				| IDataObject
-				| undefined;
-
-			const embedded = (response?._embedded ?? {}) as IDataObject;
-			const rows = (embedded[config.collection] ?? []) as IDataObject[];
+			const response = await amoCrmApiRequest.call(this, config.method, config.endpoint, body);
+			const rows = readRows(config, response);
 
 			rows.forEach((row, position) => {
-				const echoed = Number(row.request_id);
-				const itemIndex = Number.isFinite(echoed) ? echoed : (group[position]?.index ?? 0);
-				output.push({ json: row, pairedItem: { item: itemIndex } });
+				const owners = config.echoedItems?.(row) ?? echoedItem(row);
+				const fallback = group[position]?.index ?? 0;
+
+				// A row that echoes nothing usable still belongs to an input item, and the
+				// position it arrived in is the best guess amoCRM leaves us.
+				for (const itemIndex of owners.length > 0 ? owners : [fallback]) {
+					output.push({ json: row, pairedItem: { item: itemIndex } });
+				}
 			});
 		} catch (error) {
 			// A batch fails as a whole, so every item in it gets the same verdict.
@@ -82,7 +97,12 @@ export async function router(this: IExecuteFunctions): Promise<INodeExecutionDat
 	const batchConfig = module.batch?.[operation];
 
 	if (batchConfig !== undefined) {
-		const batchSize = Number(this.getNodeParameter('batchSize', 0, 1)) || 1;
+		// Held to what the endpoint accepts rather than to what the spinner allowed:
+		// one stored `batchSize` serves every operation of a resource, so a value set
+		// for a create that takes 250 arrives unchanged at one that takes 50.
+		const requested = Number(this.getNodeParameter('batchSize', 0, 1)) || 1;
+		const batchSize = Math.min(requested, batchConfig.maxBatchSize ?? 250);
+
 		if (batchSize > 1) {
 			return [await executeBatched.call(this, items, batchConfig, batchSize)];
 		}

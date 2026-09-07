@@ -15,5 +15,16 @@
 			}
 		]
 	},
-	"alias": ["amoCRM", "Kommo", "CRM", "Lead", "Deal", "Pipeline"]
+	"alias": [
+		"amoCRM",
+		"Kommo",
+		"CRM",
+		"Lead",
+		"Deal",
+		"Pipeline",
+		"Chat",
+		"Conversation",
+		"WhatsApp",
+		"Telegram"
+	]
 }

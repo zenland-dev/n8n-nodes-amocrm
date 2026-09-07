@@ -1,6 +1,8 @@
 import type { IDataObject, INode } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 
+import { omitEmpty } from './query';
+
 /**
  * amoCRM stores every custom field as `{ field_id, values: [...] }`, but the shape
  * of one `values` element depends on the field's type — a flag is a boolean, a date
@@ -75,7 +77,10 @@ function parseJsonValue(raw: unknown, fieldId: string, node: INode): unknown {
 	try {
 		return JSON.parse(String(raw));
 	} catch {
-		throw new NodeOperationError(node, `Custom field ${fieldId} was given a value that is not valid JSON`);
+		throw new NodeOperationError(
+			node,
+			`Custom field ${fieldId} was given a value that is not valid JSON`,
+		);
 	}
 }
 
@@ -200,6 +205,28 @@ export function buildCustomFieldsValues(
 	}
 
 	return result;
+}
+
+/**
+ * One `custom_fields_values` element for a predefined multitext field.
+ *
+ * Phone numbers and e-mail addresses live in the `PHONE` and `EMAIL` fields that
+ * every account has, each value tagged with a "kind" enum. The write is addressed by
+ * `field_code` rather than by id, so nothing has to be looked up before the request —
+ * which is what lets the same builder serve a contact written on its own and one
+ * written inside a lead.
+ */
+export function multitextValues(
+	code: string,
+	collection: IDataObject | undefined,
+): IDataObject | undefined {
+	const rows = ((collection ?? {}).entry ?? []) as IDataObject[];
+
+	const values = rows
+		.filter((row) => row.value !== undefined && String(row.value).trim() !== '')
+		.map((row) => omitEmpty({ value: String(row.value).trim(), enum_code: row.enumCode }));
+
+	return values.length === 0 ? undefined : { field_code: code, values };
 }
 
 /**

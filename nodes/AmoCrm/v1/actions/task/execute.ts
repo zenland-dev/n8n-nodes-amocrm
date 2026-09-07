@@ -14,7 +14,6 @@ import {
 
 const TASKS_ENDPOINT = '/api/v4/tasks';
 
-
 function toNumber(value: unknown): number | undefined {
 	if (value === undefined || value === null || value === '') return undefined;
 

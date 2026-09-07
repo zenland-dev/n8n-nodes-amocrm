@@ -1,4 +1,4 @@
-import type { INodeProperties } from 'n8n-workflow';
+import type { INodeProperties, INodePropertyOptions } from 'n8n-workflow';
 
 import { DYNAMIC_OPTIONS_DESCRIPTION } from './customFields';
 
@@ -147,16 +147,123 @@ export function entityLocator(
  */
 export function batchSizeProperty(
 	displayOptions: INodeProperties['displayOptions'],
+	// Complex lead creation is the one write with a hard ceiling of its own: amoCRM
+	// rejects more than 50 leads per request there rather than merely advising against
+	// it, so that operation gets a spinner that cannot be pushed past what it accepts.
+	maxValue = 250,
 ): INodeProperties {
 	return {
 		displayName: 'Batch Size',
 		name: 'batchSize',
 		type: 'number',
-		typeOptions: { minValue: 1, maxValue: 250 },
+		typeOptions: { minValue: 1, maxValue },
 		default: 1,
 		displayOptions,
 		description:
-			'How many input items to send in a single request. Leave at 1 to send them one at a time; 50 is amoCRM\'s recommended maximum for bulk writes.',
+			maxValue === 250
+				? "How many input items to send in a single request. Leave at 1 to send them one at a time; 50 is amoCRM's recommended maximum for bulk writes."
+				: `How many input items to send in a single request. Leave at 1 to send them one at a time; ${maxValue} is the most this endpoint accepts.`,
+	};
+}
+
+export type MultitextKind = 'phone' | 'email';
+
+const MULTITEXT: Record<
+	MultitextKind,
+	{
+		plural: string;
+		singular: string;
+		valueLabel: string;
+		placeholder: string;
+		kinds: INodePropertyOptions[];
+	}
+> = {
+	phone: {
+		plural: 'Phones',
+		singular: 'Phone',
+		valueLabel: 'Number',
+		placeholder: '+79161234567',
+		kinds: [
+			{ name: 'Fax', value: 'FAX' },
+			{ name: 'Home', value: 'HOME' },
+			{ name: 'Mobile', value: 'MOB' },
+			{ name: 'Other', value: 'OTHER' },
+			{ name: 'Work', value: 'WORK' },
+			{ name: 'Work Direct Dial', value: 'WORKDD' },
+		],
+	},
+	email: {
+		plural: 'Emails',
+		singular: 'Email',
+		valueLabel: 'Address',
+		placeholder: 'name@example.com',
+		kinds: [
+			{ name: 'Other', value: 'OTHER' },
+			{ name: 'Personal', value: 'PRIV' },
+			{ name: 'Work', value: 'WORK' },
+		],
+	},
+};
+
+/**
+ * Phone numbers or e-mail addresses, as their own editor.
+ *
+ * Both live in the predefined `PHONE` and `EMAIL` multitext fields, every value
+ * tagged with a "kind" enum. The custom-field editor can reach them, but that turns
+ * the two fields every CRM user needs into the most awkward ones in the node, so they
+ * get inputs of their own — and the same inputs wherever a person is written, whether
+ * that is the Contact resource or a contact created alongside a lead.
+ *
+ * The parameter name is passed in rather than derived: `phonesUi` and `emailsUi` are
+ * already in people's saved workflows and must keep those names.
+ */
+export function multitextProperty(
+	kind: MultitextKind,
+	name: string,
+	displayOptions: INodeProperties['displayOptions'],
+	// One form may hold two of these — the contact's phones and the company's, on a
+	// complex lead — and two fields labelled "Phones" with two buttons reading "Add
+	// Phone" are indistinguishable except by their order on screen. Whoever fills the
+	// wrong one gives the client's number to the company, and the duplicate check that
+	// operation exists for never fires.
+	options: { description?: string; displayName?: string; placeholder?: string } = {},
+): INodeProperties {
+	const shape = MULTITEXT[kind];
+
+	return {
+		displayName: options.displayName ?? shape.plural,
+		name,
+		type: 'fixedCollection',
+		typeOptions: { multipleValues: true },
+		placeholder: options.placeholder ?? `Add ${shape.singular}`,
+		default: {},
+		displayOptions,
+		description: options.description,
+		options: [
+			{
+				name: 'entry',
+				displayName: shape.singular,
+				// The value comes before the label it carries: alphabetising would ask for
+				// the kind of a number that has not been typed yet.
+				values: [
+					{
+						displayName: shape.valueLabel,
+						name: 'value',
+						type: 'string',
+						default: '',
+						placeholder: shape.placeholder,
+					},
+					{
+						displayName: 'Kind',
+						name: 'enumCode',
+						type: 'options',
+						default: 'WORK',
+						description: `How amoCRM labels this ${shape.valueLabel.toLowerCase()}`,
+						options: shape.kinds,
+					},
+				],
+			},
+		],
 	};
 }
 
@@ -169,7 +276,8 @@ export function responsibleUserProperty(
 		displayName: 'Responsible User Name or ID',
 		name,
 		type: 'options',
-		description: 'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
+		description:
+			'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
 		typeOptions: { loadOptionsMethod: 'getUsers' },
 		default: '',
 		displayOptions,

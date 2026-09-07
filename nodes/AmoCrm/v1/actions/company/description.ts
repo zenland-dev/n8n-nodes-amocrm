@@ -432,7 +432,9 @@ export const description: INodeProperties[] = [
 	contactsProperty,
 	additionalFields,
 	updateFields,
-	customFieldsDescription(showFor(['create', 'update']), 'getCompanyCustomFields'),
+	customFieldsDescription(showFor(['create', 'update']), 'getCompanyCustomFields', {
+		fieldEntity: 'companies',
+	}),
 	batchSizeProperty(showFor(['create', 'update'])),
 	...returnAllProperties(showFor(['getAll'])),
 	filters,

@@ -3,6 +3,7 @@ import { NodeOperationError } from 'n8n-workflow';
 
 import {
 	buildCustomFieldsValues,
+	multitextValues,
 	parseFieldSelection,
 	simplifyCustomFields,
 } from '../../helpers/customFields';
@@ -37,7 +38,6 @@ function assignId(target: IDataObject, key: string, value: unknown): void {
 	target[key] = Number.isFinite(numeric) ? numeric : raw;
 }
 
-
 /** Tag dropdowns hand back names; an expression may well hand back an id. */
 function tagReferences(values: unknown[]): IDataObject[] {
 	return values
@@ -61,23 +61,12 @@ function applyTags(target: IDataObject, fields: IDataObject): void {
 	if (toDelete.length > 0) target.tags_to_delete = toDelete;
 }
 
-/** One `custom_fields_values` element for a predefined multitext field. */
-function multitextField(code: string, collection: IDataObject): IDataObject | undefined {
-	const rows = (collection.entry ?? []) as IDataObject[];
-
-	const values = rows
-		.filter((row) => row.value !== undefined && String(row.value).trim() !== '')
-		.map((row) => omitEmpty({ value: String(row.value).trim(), enum_code: row.enumCode }));
-
-	return values.length === 0 ? undefined : { field_code: code, values };
-}
-
 function customFieldsFor(this: IExecuteFunctions, itemIndex: number): IDataObject[] {
-	const phones = multitextField(
+	const phones = multitextValues(
 		'PHONE',
 		this.getNodeParameter('phonesUi', itemIndex, {}) as IDataObject,
 	);
-	const emails = multitextField(
+	const emails = multitextValues(
 		'EMAIL',
 		this.getNodeParameter('emailsUi', itemIndex, {}) as IDataObject,
 	);

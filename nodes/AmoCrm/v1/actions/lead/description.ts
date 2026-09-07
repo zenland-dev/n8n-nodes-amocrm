@@ -3,6 +3,7 @@ import type { INodeProperties } from 'n8n-workflow';
 import {
 	batchSizeProperty,
 	entityLocator,
+	multitextProperty,
 	responsibleUserProperty,
 	returnAllProperties,
 	simplifyProperty,
@@ -73,13 +74,20 @@ const LIST_WITH_OPTIONS = [...WITH_OPTIONS, ONLY_DELETED_OPTION].sort((left, rig
 /**
  * Everything a lead can be written with, minus the name on create.
  *
- * Create and update share this list so the two cannot drift apart, but three fields
- * only mean something on an existing lead: renaming it, and the two tag switches that
- * subtract from or overwrite the set it already has.
+ * All three writes share this list so they cannot drift apart, and each drops what it
+ * cannot honour. Three fields only mean something on an existing lead: renaming it,
+ * and the two tag switches that subtract from or overwrite the set it already has.
+ * Three more only mean something where the lead does not carry its own contact and
+ * company, which is every write except the complex one.
  */
-function writeFields(mode: 'create' | 'update'): INodeProperties[] {
+function writeFields(mode: 'create' | 'update' | 'complex'): INodeProperties[] {
 	const updateOnly = (properties: INodeProperties[]): INodeProperties[] =>
 		mode === 'update' ? properties : [];
+
+	// Complex creation carries the contact and the company itself, so the fields that
+	// attach existing ones would compete with it for the same `_embedded` keys.
+	const attachOnly = (properties: INodeProperties[]): INodeProperties[] =>
+		mode === 'complex' ? [] : properties;
 
 	return [
 		{
@@ -98,22 +106,24 @@ function writeFields(mode: 'create' | 'update'): INodeProperties[] {
 			default: '',
 			description: 'When the lead was won or lost',
 		},
-		{
-			displayName: 'Company ID',
-			name: 'companyId',
-			type: 'string',
-			default: '',
-			description:
-				'ID of an existing company to attach. A lead holds at most one company, so only the first ID given is used.',
-		},
-		{
-			displayName: 'Contact IDs',
-			name: 'contactIds',
-			type: 'string',
-			default: '',
-			placeholder: '12117258, 12117259',
-			description: 'IDs of existing contacts to attach to the lead, comma-separated',
-		},
+		...attachOnly([
+			{
+				displayName: 'Company ID',
+				name: 'companyId',
+				type: 'string',
+				default: '',
+				description:
+					'ID of an existing company to attach. A lead holds at most one company, so only the first ID given is used.',
+			},
+			{
+				displayName: 'Contact IDs',
+				name: 'contactIds',
+				type: 'string',
+				default: '',
+				placeholder: '12117258, 12117259',
+				description: 'IDs of existing contacts to attach to the lead, comma-separated',
+			},
+		]),
 		{
 			displayName: 'Created At',
 			name: 'createdAt',
@@ -139,14 +149,16 @@ function writeFields(mode: 'create' | 'update'): INodeProperties[] {
 			description:
 				'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
 		},
-		{
-			displayName: 'Main Contact ID',
-			name: 'mainContactId',
-			type: 'string',
-			default: '',
-			description:
-				"Which contact is the lead's main one. It is attached even when it is not in the list above.",
-		},
+		...attachOnly([
+			{
+				displayName: 'Main Contact ID',
+				name: 'mainContactId',
+				type: 'string',
+				default: '',
+				description:
+					"Which contact is the lead's main one. It is attached even when it is not in the list above.",
+			},
+		]),
 		...updateOnly([
 			{
 				displayName: 'Name',
@@ -429,6 +441,130 @@ const filtersProperty: INodeProperties = {
 	],
 };
 
+const showForComplex = showFor(['createComplex']);
+
+/**
+ * The contact and the company that travel inside a complex lead.
+ *
+ * The contact gets the same editors as the Contact resource — the same phone and e-mail
+ * inputs, the same custom-field editor — because a person filling in a lead's contact
+ * should not meet a second, poorer way of writing the same entity. The company gets the
+ * same pair, which its own resource does not offer: there they live inside the
+ * custom-field editor, and here the duplicate check reads them.
+ */
+const complexNotice: INodeProperties = {
+	displayName:
+		"Everything below is checked against the account's existing contacts and companies before anything is written: a contact whose phone or e-mail is already known is merged into instead of being created a second time. The check runs only where duplicate control is switched on for this integration in amoCRM; where it is not, the write still succeeds, unchecked. Giving an ID below attaches that entity as it is and is not checked at all. One contact and one company per lead, at most 40 custom fields each, and at most 50 leads per request.",
+	name: 'complexNotice',
+	type: 'notice',
+	default: '',
+	displayOptions: showForComplex,
+};
+
+const complexProperties: INodeProperties[] = [
+	{
+		displayName: 'Contact Fields',
+		name: 'complexContactFields',
+		type: 'collection',
+		placeholder: 'Add Contact Field',
+		default: {},
+		displayOptions: showForComplex,
+		description: 'The contact to create with the lead, or attach to it',
+		options: [
+			{
+				displayName: 'Contact ID',
+				name: 'id',
+				type: 'string',
+				default: '',
+				description:
+					"Attach this contact instead of creating one. It cannot be combined with the contact's other fields, phones, e-mails or custom fields — amoCRM reads either an ID or a whole contact — and an attached contact is not checked for duplicates.",
+			},
+			{
+				displayName: 'First Name',
+				name: 'first_name',
+				type: 'string',
+				default: '',
+			},
+			{
+				displayName: 'Last Name',
+				name: 'last_name',
+				type: 'string',
+				default: '',
+			},
+			{
+				displayName: 'Name',
+				name: 'name',
+				type: 'string',
+				default: '',
+				description:
+					'Display name. Leave it empty and fill First Name and Last Name instead — amoCRM builds the display name out of those two.',
+			},
+			responsibleUserProperty(undefined),
+		],
+	},
+	multitextProperty('phone', 'contactPhonesUi', showForComplex, {
+		displayName: 'Contact Phones',
+		placeholder: 'Add Contact Phone',
+		description:
+			'Phone numbers of the contact. This is what the duplicate check matches on, so a number here is what decides whether the contact is merged into an existing one.',
+	}),
+	multitextProperty('email', 'contactEmailsUi', showForComplex, {
+		displayName: 'Contact Emails',
+		placeholder: 'Add Contact Email',
+		description:
+			'E-mail addresses of the contact, matched by the duplicate check the same way phone numbers are',
+	}),
+	customFieldsDescription(showForComplex, 'getContactCustomFields', {
+		name: 'contactCustomFieldsUi',
+		displayName: 'Contact Custom Fields',
+		placeholder: 'Add Contact Custom Field',
+		fieldEntity: 'contacts',
+	}),
+	{
+		displayName: 'Company Fields',
+		name: 'complexCompanyFields',
+		type: 'collection',
+		placeholder: 'Add Company Field',
+		default: {},
+		displayOptions: showForComplex,
+		description: 'The company to create with the lead, or attach to it. Leave empty for none.',
+		options: [
+			{
+				displayName: 'Company ID',
+				name: 'id',
+				type: 'string',
+				default: '',
+				description:
+					"Attach this company instead of creating one. It cannot be combined with the company's other fields, phones, e-mails or custom fields — amoCRM reads either an ID or a whole company — and an attached company is not checked for duplicates.",
+			},
+			{
+				displayName: 'Name',
+				name: 'name',
+				type: 'string',
+				default: '',
+				description: 'Name of the company',
+			},
+			responsibleUserProperty(undefined),
+		],
+	},
+	multitextProperty('phone', 'companyPhonesUi', showForComplex, {
+		displayName: 'Company Phones',
+		placeholder: 'Add Company Phone',
+		description: 'Phone numbers of the company',
+	}),
+	multitextProperty('email', 'companyEmailsUi', showForComplex, {
+		displayName: 'Company Emails',
+		placeholder: 'Add Company Email',
+		description: 'E-mail addresses of the company',
+	}),
+	customFieldsDescription(showForComplex, 'getCompanyCustomFields', {
+		name: 'companyCustomFieldsUi',
+		displayName: 'Company Custom Fields',
+		placeholder: 'Add Company Custom Field',
+		fieldEntity: 'companies',
+	}),
+];
+
 export const description: INodeProperties[] = [
 	{
 		displayName: 'Operation',
@@ -443,6 +579,13 @@ export const description: INodeProperties[] = [
 				value: 'create',
 				action: 'Create a lead',
 				description: 'Add a lead to a pipeline',
+			},
+			{
+				name: 'Create Complex',
+				value: 'createComplex',
+				action: 'Create a lead with a contact and a company',
+				description:
+					"Add a lead together with its contact and company in one request, through amoCRM's own duplicate control: a contact whose phone or e-mail is already known is merged into rather than created twice",
 			},
 			{
 				name: 'Get',
@@ -465,6 +608,7 @@ export const description: INodeProperties[] = [
 		],
 	},
 
+	complexNotice,
 	entityLocator('lead', 'leadId', showFor(['get', 'update'])),
 
 	{
@@ -472,7 +616,7 @@ export const description: INodeProperties[] = [
 		name: 'name',
 		type: 'string',
 		default: '',
-		displayOptions: showFor(['create']),
+		displayOptions: showFor(['create', 'createComplex']),
 		description: 'Leave empty and amoCRM names the lead after its ID',
 	},
 
@@ -486,6 +630,15 @@ export const description: INodeProperties[] = [
 		options: writeFields('create'),
 	},
 	{
+		displayName: 'Additional Fields',
+		name: 'additionalFields',
+		type: 'collection',
+		placeholder: 'Add Field',
+		default: {},
+		displayOptions: showFor(['createComplex']),
+		options: writeFields('complex'),
+	},
+	{
 		displayName: 'Update Fields',
 		name: 'updateFields',
 		type: 'collection',
@@ -495,8 +648,14 @@ export const description: INodeProperties[] = [
 		options: writeFields('update'),
 	},
 
-	customFieldsDescription(showFor(['create', 'update']), 'getLeadCustomFields'),
+	customFieldsDescription(showFor(['create', 'createComplex', 'update']), 'getLeadCustomFields', {
+		fieldEntity: 'leads',
+	}),
+
+	...complexProperties,
+
 	batchSizeProperty(showFor(['create', 'update'])),
+	batchSizeProperty(showForComplex, 50),
 
 	...returnAllProperties(showFor(['getAll'])),
 	filtersProperty,

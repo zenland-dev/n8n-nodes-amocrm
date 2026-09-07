@@ -3,12 +3,73 @@
 Notable changes to this package. The format follows [Keep a Changelog](https://keepachangelog.com/),
 and the package follows [semantic versioning](https://semver.org/).
 
+## 0.4.0 — 2026-09-08
+
+### Added
+
+- **A Talk resource — the conversations the trigger already reports.** The trigger has always
+  raised _message added_ and _conversation created_, and until now the node had no way to answer
+  either. Talk lists conversations (filtered by contact, by the lead or customer they are about,
+  or to just the ones still in work), reads one, reads its messages, replies into whichever
+  messenger the client wrote from, and closes it — outright, or by handing it to the NPS bot to
+  ask for a rating first. The channel does not have to belong to this integration: a WhatsApp
+  conversation opened by somebody else's is answerable all the same.
+
+  Listing, reading and closing are documented by both amoCRM and Kommo. **Get Messages** and
+  **Send Message** are documented by Kommo only, and against a live amoCRM.ru account they answer
+  **403**, not 404: the routes are there, gated behind a chat permission amoCRM does not offer
+  integrations, so listing conversations succeeds while reading one of them refuses. Sending
+  spends the Chats API add-on quota; reading the history does not. All of it answers 402 on an
+  account whose subscription has lapsed.
+
+- **Create Complex on leads — a lead, its contact and its company in one request.** This is the
+  only route into amoCRM's duplicate control: a contact whose phone or e-mail the account already
+  knows is merged into rather than created a second time, and the answer reports which lead,
+  contact and company the write resolved to, and whether a merge happened. Taking in an enquiry
+  stops being four nodes and four requests against the rate budget.
+
+  The contact gets the same editors as the Contact resource — the same phone and e-mail inputs,
+  the same custom-field editor — and the company gets that pair too, which its own resource does
+  not offer. Either may instead be given an ID to attach an entity that already exists, which is
+  then not checked for duplicates and cannot be combined with the fields describing a new one.
+  One condition worth knowing before relying on it: duplicate control has to be switched on for
+  the integration in amoCRM, and where it is not, the write still succeeds, unchecked.
+
+  It takes a **Batch Size** like the other lead writes, up to amoCRM's limit of 50 per request.
+  Where duplicate control merges several submitted leads into one, every input item that ended up
+  in that lead is paired with the result, so a merge is visible per item rather than as a silently
+  shorter output.
+
+### Fixed
+
+- **A select field's options are read from the right dictionary.** The list beside the field
+  picker was looked up by the node's _resource_, which is only ever right when the entity being
+  written is the resource itself. Under **Unsorted** — whose resource name matches no dictionary
+  at all — the options of every select and multi-select came back empty, with nothing said about
+  why, and a value left empty because there was nothing to pick then dropped that field from the
+  request entirely. The editor now states which entity its fields belong to.
+- **The node's own error messages reach the user again.** Handed an error n8n had already wrapped,
+  n8n's `NodeApiError` keeps its own text and silently discards the one it is given — so a refused
+  request surfaced as _"Forbidden - perhaps check your credentials?"_ even though the credentials
+  were fine and the real cause was a missing permission. Every explanation this node writes was at
+  the mercy of which layer happened to wrap the failure first. The failure is now passed on as
+  plain data, carrying amoCRM's response with it, so the message written here is the one that
+  survives.
+- **A 403 now says what amoCRM said.** The node replaced the API's own explanation with its list
+  of the three things a 403 can mean, which is the right guess when there is nothing better — but
+  on an endpoint gated behind a permission, amoCRM names the permission, and that sentence was
+  being thrown away. It is now printed first, with the three generic causes kept underneath.
+- **The HTTP status is found in more of the shapes a failure arrives in.** It decides whether a
+  request is retried and which explanation the reader gets, and it was being missed on several
+  nestings — `response.statusCode`, a status on the error itself, and anything wrapped twice —
+  which left those failures with n8n's generic wording and no retry where one was due.
+
 ## 0.3.1 — 2026-09-07
 
 ### Fixed
 
 - **A call note no longer looks for a user named "504141".** The Note resource sent
-  `call_responsible` as text, and amoCRM reads a string there as a user *name*, so a numeric
+  `call_responsible` as text, and amoCRM reads a string there as a user _name_, so a numeric
   ID matched nobody. It is now resolved the way the Call resource always resolved it.
 - **Unusable filter values are reported rather than sent.** A pipeline filter on leads, and an
   ID list on customers, went through `Number()` without checking the result: anything
@@ -41,11 +102,11 @@ and the package follows [semantic versioning](https://semver.org/).
   inconsistency: with a single window per account, two credentials configured with different
   **Requests per Second** took turns imposing their own limit on the same window. Setups with
   one credential per account are unaffected.
-- **The README leads with what the node does for you**, in a new *Why this node* section
+- **The README leads with what the node does for you**, in a new _Why this node_ section
   placed on the first screen: the request counter and its retry rules, the amoCRM errors this
   node explains, account-aware dropdowns and field editors, batching, the trigger's payload
   decoding, and why neither credential can be pointed at an address of its own. It replaces
-  *What makes this node different*.
+  _What makes this node different_.
 - **Wording corrected where it overstated amoCRM's rules.** A 403 earned by going too fast
   shuts out the integration that earned it; the ceiling across every integration calling one
   account is a separate, wider limit. Dropdown caching is now described as what it is — a
@@ -81,10 +142,10 @@ and the package follows [semantic versioning](https://semver.org/).
   token, or the OAuth client secret, out of the building. The domain is checked against the list in
   the credential and again in the node's own code, because a credential's dropdown is only a hint
   to the editor; the subdomain is reduced to the characters a host may contain.
-- **Both credentials are pinned out of the HTTP Request node.** n8n adds an *Allowed HTTP Request
-  Domains* setting to credentials like these, defaulting to *All*, which lets anyone select the
+- **Both credentials are pinned out of the HTTP Request node.** n8n adds an _Allowed HTTP Request
+  Domains_ setting to credentials like these, defaulting to _All_, which lets anyone select the
   credential in an HTTP Request node and point it at any URL. The package now ships that setting
-  itself, fixed to *None* and hidden. It governs the HTTP Request, GraphQL and declarative-routing
+  itself, fixed to _None_ and hidden. It governs the HTTP Request, GraphQL and declarative-routing
   surfaces only — this node's own calls, its trigger and its credential tests are unaffected.
 
 ## 0.1.0 — 2026-09-05
