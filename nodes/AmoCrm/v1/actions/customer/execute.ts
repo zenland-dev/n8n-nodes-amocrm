@@ -181,13 +181,23 @@ function buildListQuery(this: IExecuteFunctions, itemIndex: number): IDataObject
 		.split(',')
 		.map((id) => id.trim())
 		.filter((id) => id !== '');
-	if (ids.length > 0) filter.id = ids.map(Number);
+	const numericIds = ids.map(Number);
+	if (numericIds.some((id) => !Number.isFinite(id))) {
+		throw new NodeOperationError(node, 'IDs has to be a comma-separated list of numbers', {
+			description: `amoCRM identifies a customer by a numeric ID, and this list reads "${ids.join(', ')}".`,
+			itemIndex,
+		});
+	}
+	if (numericIds.length > 0) filter.id = numericIds;
 
 	if (isFilled(filters.name)) filter.name = String(filters.name);
 
 	for (const key of ['status_id', 'responsible_user_id', 'created_by', 'updated_by']) {
 		const values = (filters[key] ?? []) as Array<string | number>;
-		if (values.length > 0) filter[key] = values.map(Number);
+		// Dropped rather than refused: these come from pickers, and an expression that
+		// yields nothing usable should narrow the search, not fail the run.
+		const numeric = values.map(Number).filter((value) => Number.isFinite(value));
+		if (numeric.length > 0) filter[key] = numeric;
 	}
 
 	const ranges: Array<[string, string, string, boolean]> = [

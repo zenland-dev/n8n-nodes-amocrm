@@ -20,6 +20,23 @@ function assign(target: IDataObject, key: string, value: unknown): void {
 	target[key] = value;
 }
 
+/**
+ * The same as {@link assign}, for a field amoCRM reads as a numeric id.
+ *
+ * A picker hands back a number, but an expression — or a workflow written as JSON,
+ * or generated — hands back "504141", and amoCRM reads a string there as a name to
+ * look up rather than an id. Anything that is not a number is passed through
+ * untouched, so the API answers with a message naming the field instead of the node
+ * quietly dropping it.
+ */
+function assignId(target: IDataObject, key: string, value: unknown): void {
+	const raw = typeof value === 'string' ? value.trim() : value;
+	if (raw === undefined || raw === null || raw === '') return;
+
+	const numeric = Number(raw);
+	target[key] = Number.isFinite(numeric) ? numeric : raw;
+}
+
 
 /** Tag dropdowns hand back names; an expression may well hand back an id. */
 function tagReferences(values: unknown[]): IDataObject[] {
@@ -105,8 +122,8 @@ async function buildCreatePayload(
 	const payload: IDataObject = {};
 
 	assign(payload, 'name', this.getNodeParameter('name', itemIndex, '') as string);
-	assign(payload, 'responsible_user_id', fields.responsible_user_id);
-	assign(payload, 'created_by', fields.created_by);
+	assignId(payload, 'responsible_user_id', fields.responsible_user_id);
+	assignId(payload, 'created_by', fields.created_by);
 	assign(payload, 'created_at', toUnixSeconds(fields.createdAt));
 	applyTags(payload, fields);
 
@@ -140,8 +157,8 @@ async function buildUpdatePayload(
 	const payload: IDataObject = { id: Number(companyId) };
 
 	assign(payload, 'name', fields.name);
-	assign(payload, 'responsible_user_id', fields.responsible_user_id);
-	assign(payload, 'updated_by', fields.updated_by);
+	assignId(payload, 'responsible_user_id', fields.responsible_user_id);
+	assignId(payload, 'updated_by', fields.updated_by);
 	applyTags(payload, fields);
 
 	const customFields = buildCustomFieldsValues(

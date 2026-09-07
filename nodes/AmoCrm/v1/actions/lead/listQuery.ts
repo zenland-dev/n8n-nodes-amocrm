@@ -117,7 +117,18 @@ export function buildLeadListQuery(this: IExecuteFunctions, itemIndex: number): 
 
 	const pipelineId = filters.pipelineId;
 	const hasPipeline = pipelineId !== undefined && pipelineId !== null && pipelineId !== '';
-	if (hasPipeline) filter.pipeline_id = Number(pipelineId);
+	// Number() of anything unparseable is NaN, and NaN reaches amoCRM as the literal
+	// "NaN" — a search that matches nothing and never says why.
+	const pipelineFilterId = hasPipeline ? Number(pipelineId) : undefined;
+
+	if (pipelineFilterId !== undefined && !Number.isFinite(pipelineFilterId)) {
+		throw new NodeOperationError(node, 'The pipeline in Filters is not an ID', {
+			description: `A pipeline filter has to be a numeric ID, and this one reads "${String(pipelineId)}". Pick the pipeline from the list, or pass an ID from an earlier node.`,
+			itemIndex,
+		});
+	}
+
+	if (pipelineFilterId !== undefined) filter.pipeline_id = pipelineFilterId;
 
 	const statusIds = toIdArray(filters.statusIds);
 	if (statusIds.length > 0) {
@@ -132,7 +143,7 @@ export function buildLeadListQuery(this: IExecuteFunctions, itemIndex: number): 
 		}
 
 		filter.statuses = statusIds.map((statusId) => ({
-			pipeline_id: Number(pipelineId),
+			pipeline_id: pipelineFilterId as number,
 			status_id: statusId,
 		}));
 	}

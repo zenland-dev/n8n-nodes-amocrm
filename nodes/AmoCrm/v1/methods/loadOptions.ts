@@ -52,10 +52,17 @@ function toCustomFieldOptions(fields: IDataObject[]): INodePropertyOptions[] {
 export async function getPipelines(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 	const pipelines = await cachedList.call(this, '/api/v4/leads/pipelines', 'pipelines');
 
-	return toOptions(
-		pipelines.filter((pipeline) => pipeline.is_archive !== true),
-		{ describe: (pipeline) => (pipeline.is_main === true ? 'Main pipeline' : undefined) },
-	);
+	// Archived pipelines belong in the list. Leads already sitting in one have to stay
+	// addressable, the Pipeline resource returns them by default, and the stage picker
+	// never hid their stages — hiding only the pipeline made the two disagree. The name
+	// says which is which; the row itself is shared and cached, so it is left alone.
+	return toOptions(pipelines, {
+		label: (pipeline) =>
+			pipeline.is_archive === true
+				? `${String(pipeline.name)} (archived)`
+				: String(pipeline.name),
+		describe: (pipeline) => (pipeline.is_main === true ? 'Main pipeline' : undefined),
+	});
 }
 
 /**

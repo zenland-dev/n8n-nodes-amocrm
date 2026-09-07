@@ -89,7 +89,7 @@ function writeFields(mode: 'create' | 'update'): INodeProperties[] {
 			default: '',
 			placeholder: 'hot, from-webinar',
 			description:
-				'Tags that are not in the list yet, comma-separated. amoCRM creates a tag the first time its name is used.',
+				'Comma-separated tag names to attach; amoCRM creates a tag the first time its name is used. A value of only digits is read as the ID of an existing tag rather than as a name. Tags are separate per entity type, so an ID copied from a contact does not point at the same tag on a lead.',
 		},
 		{
 			displayName: 'Closed At',

@@ -118,7 +118,7 @@ const additionalFields: INodeProperties = {
 			default: '',
 			placeholder: 'vip, repeat-buyer',
 			description:
-				'Comma-separated tag names to attach. A tag that does not exist yet is created by amoCRM.',
+				'Comma-separated tag names to attach; amoCRM creates a tag the first time its name is used. A value of only digits is read as the ID of an existing tag rather than as a name. Tags are separate per entity type, so an ID copied from a contact does not point at the same tag on a lead.',
 		},
 		{
 			displayName: 'Next Purchase Amount',
@@ -194,7 +194,7 @@ const updateFields: INodeProperties = {
 			default: '',
 			placeholder: 'vip, repeat-buyer',
 			description:
-				'Comma-separated tag names to attach. A tag that does not exist yet is created by amoCRM.',
+				'Comma-separated tag names to attach; amoCRM creates a tag the first time its name is used. A value of only digits is read as the ID of an existing tag rather than as a name. Tags are separate per entity type, so an ID copied from a contact does not point at the same tag on a lead.',
 		},
 		{
 			displayName: 'Next Purchase Amount',

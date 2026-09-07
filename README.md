@@ -230,7 +230,12 @@ a text field, wrong for a date, a select or a multiselect.
   not an administrator, not that the token is wrong.
 - **402 means the subscription lapsed**, not that credentials are bad. Writes stop immediately,
   reads keep working for thirty days.
-- **Tag lists replace, not append.** Sending tags on an update replaces the whole set.
+- **Tags are added, not replaced.** amoCRM's own `_embedded.tags` overwrites an entity's
+  whole tag set, so this node writes `tags_to_add` instead and leaves the rest alone. Use
+  **Removed Tag Names or IDs** to take one away, or **Replace Tags** when overwriting is what
+  you mean.
+- **Tags are separate per entity type.** The same name is a different tag, with a different ID,
+  on a lead and on a contact — an ID copied from one will not find the other.
 - **Multi-value custom fields replace too** — read, modify, write to add a second phone number.
 - **In queue mode the budget is per worker.** The request counter lives in the n8n process
   that runs the execution, so a single-process instance stays inside one budget, while N

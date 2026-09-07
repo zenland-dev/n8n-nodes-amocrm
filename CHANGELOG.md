@@ -3,6 +3,34 @@
 Notable changes to this package. The format follows [Keep a Changelog](https://keepachangelog.com/),
 and the package follows [semantic versioning](https://semver.org/).
 
+## 0.3.1 — 2026-09-07
+
+### Fixed
+
+- **A call note no longer looks for a user named "504141".** The Note resource sent
+  `call_responsible` as text, and amoCRM reads a string there as a user *name*, so a numeric
+  ID matched nobody. It is now resolved the way the Call resource always resolved it.
+- **Unusable filter values are reported rather than sent.** A pipeline filter on leads, and an
+  ID list on customers, went through `Number()` without checking the result: anything
+  unparseable reached amoCRM as the literal `NaN`, a search that matches nothing and explains
+  nothing. Both now name the field and say what they read.
+- **Contact and company writes send IDs as numbers.** `responsible_user_id`, `created_by` and
+  `updated_by` were passed on exactly as stored, so an ID that arrived as text — from an
+  expression, or from a workflow written as JSON — went out as text. The other five resources
+  already converted; these two now match. A value that is not a number is still passed
+  through, so amoCRM names the offending field instead of the node quietly dropping it.
+
+### Changed
+
+- **Archived pipelines are listed again, marked `(archived)`.** Hiding them left a lead that
+  sits in one unaddressable, disagreed with the Pipeline resource — which returns archived
+  pipelines by default — and disagreed with the stage picker, which never hid their stages.
+- **The tag fields say what they take.** Names, comma-separated; a value of only digits is read
+  as an existing tag's ID rather than a name; and tags are separate per entity type, so an ID
+  copied from a contact does not point at the same tag on a lead. The README claimed tags
+  replace an entity's whole set — that is amoCRM's raw behaviour, not this node's, which adds
+  them and offers **Replace Tags** when overwriting is meant.
+
 ## 0.3.0 — 2026-09-06
 
 ### Changed

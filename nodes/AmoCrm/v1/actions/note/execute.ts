@@ -79,6 +79,15 @@ function buildNoteBody(
 	const choice = String(this.getNodeParameter('noteType', itemIndex, 'common') ?? 'common');
 	const read = (name: string): string => String(this.getNodeParameter(name, itemIndex, '') ?? '');
 
+	// A bare number here is a user id, and amoCRM reads a string as a user *name* —
+	// "504141" would send it looking for a person called that. The Call resource
+	// resolves the same field the same way; the two must not disagree.
+	const readId = (name: string): string | number | undefined => {
+		const value = read(name).trim();
+		if (value === '') return undefined;
+		return /^d+$/.test(value) ? Number(value) : value;
+	};
+
 	if (choice === 'custom') {
 		const noteType = read('customNoteType').trim();
 
@@ -114,7 +123,7 @@ function buildNoteBody(
 				source: read('source'),
 				link: read('link'),
 				phone: read('phone'),
-				call_responsible: read('call_responsible'),
+				call_responsible: readId('call_responsible'),
 			}),
 		};
 	}
