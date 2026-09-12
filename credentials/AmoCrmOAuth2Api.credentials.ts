@@ -21,7 +21,10 @@ export class AmoCrmOAuth2Api implements ICredentialType {
 
 	documentationUrl = 'https://www.amocrm.ru/developers/content/oauth/step-by-step';
 
-	icon: Icon = 'file:amocrm.svg';
+	icon: Icon = {
+		light: 'file:amocrm.svg',
+		dark: 'file:amocrm.dark.svg',
+	};
 
 	properties: INodeProperties[] = [
 		{

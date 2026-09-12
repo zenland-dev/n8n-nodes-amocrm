@@ -3,6 +3,19 @@
 Notable changes to this package. The format follows [Keep a Changelog](https://keepachangelog.com/),
 and the package follows [semantic versioning](https://semver.org/).
 
+## 0.4.2 — 2026-09-12
+
+### Changed
+
+- **A dark-theme icon.** Both nodes and both credentials carried one flat file, so on
+  n8n's dark canvas the amoCRM mark sat there as a dark smudge. There is now a `light`
+  and a `dark` variant at each of the four declarations. The path is the vendor's and is
+  untouched; only the blue differs, `#0084C0` on light and `#3DC2FF` on dark, which is the
+  same hue and saturation with the lightness raised from 38% to 62%. amoCRM publishes no
+  dark logo of its own, so the lighter tone is ours rather than theirs.
+
+Nothing else changed: no operation, field or identifier is different from 0.4.1.
+
 ## 0.4.1 — 2026-09-12
 
 ### Changed

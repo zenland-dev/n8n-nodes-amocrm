@@ -25,7 +25,10 @@ export class AmoCrmApi implements ICredentialType {
 
 	documentationUrl = 'https://developers.kommo.com/docs/long-lived-token';
 
-	icon: Icon = 'file:amocrm.svg';
+	icon: Icon = {
+		light: 'file:amocrm.svg',
+		dark: 'file:amocrm.dark.svg',
+	};
 
 	properties: INodeProperties[] = [
 		...accountAddressProperties,

@@ -96,7 +96,10 @@ export class AmoCrmTrigger implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'amoCRM Trigger',
 		name: 'amoCrmTrigger',
-		icon: 'file:amocrm.svg',
+		icon: {
+			light: 'file:amocrm.svg',
+			dark: 'file:amocrm.dark.svg',
+		},
 		group: ['trigger'],
 		version: 1,
 		subtitle: '={{ $parameter["events"].join(", ") }}',
