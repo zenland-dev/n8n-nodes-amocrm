@@ -3,6 +3,18 @@
 Notable changes to this package. The format follows [Keep a Changelog](https://keepachangelog.com/),
 and the package follows [semantic versioning](https://semver.org/).
 
+## 0.4.1 — 2026-09-12
+
+### Changed
+
+- **`LICENSE.md` now says what the icon is.** The MIT text was there from the start, but
+  nothing in it addressed the amoCRM mark the package reproduces in three icon files. The
+  new Trademarks section states the obvious out loud: the mark identifies the service these
+  nodes connect to, nothing more, and the MIT grant does not sublicense it. Both brand names
+  are covered, since amoCRM and Kommo are one product behind one API.
+
+No code change: `dist` is identical to 0.4.0.
+
 ## 0.4.0 — 2026-09-08
 
 ### Added

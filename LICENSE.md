@@ -19,3 +19,22 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+## Trademarks
+
+The MIT grant above covers this package's own code and documentation. It does
+not, and cannot, grant any right in third-party trademarks.
+
+"amoCRM" and "Kommo", and the amoCRM logo, are trademarks of their owner. The
+mark is reproduced in `credentials/amocrm.svg`, `nodes/AmoCrm/amocrm.svg` and
+`nodes/AmoCrmTrigger/amocrm.svg` solely to identify which service these nodes
+connect to — nominative use — and its inclusion is not a claim of ownership, nor
+an endorsement, sponsorship or affiliation. Both names appear because they are
+one product: the same API is served under amocrm.ru, amocrm.com and kommo.com.
+This package is an independent integration and is not produced, endorsed or
+supported by its owner.
+
+Nothing in the MIT licence sublicenses those marks. Anyone redistributing or
+modifying this package remains subject to the trademark owner's own terms.
